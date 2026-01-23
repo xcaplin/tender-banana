@@ -13,9 +13,13 @@ A GitHub Pages-compatible React application for tracking and analyzing tender op
 
 ## Prerequisites
 
+**For deployment to GitHub Pages:**
+- A GitHub account with repository access
+- Git (for pushing code)
+
+**For local development (optional):**
 - Node.js (version 16 or higher)
 - npm or yarn package manager
-- Git
 
 ## Installation
 
@@ -60,45 +64,56 @@ npm run preview
 
 ## Deployment to GitHub Pages
 
+This project uses GitHub Actions to automatically build and deploy to GitHub Pages whenever code is pushed to the `main` or `master` branch.
+
 ### Initial Setup
 
-1. Ensure your repository is set up on GitHub
-2. Make sure the `base` path in `vite.config.js` matches your repository name
+1. Push your code to the `main` branch on GitHub
+2. Go to your repository on GitHub
+3. Navigate to **Settings > Pages**
+4. Under "Source", select **"GitHub Actions"**
+5. The workflow will automatically trigger on push
 
-### Deploy
+### Automatic Deployment
 
-To deploy to GitHub Pages:
-
-```bash
-npm run deploy
-```
-
-This command will:
-1. Build the application for production
-2. Deploy the `dist/` folder to the `gh-pages` branch
-3. Make the site available at `https://xcaplin.github.io/tender-banana/`
-
-### GitHub Pages Configuration
-
-After deploying, ensure GitHub Pages is enabled:
-1. Go to your repository on GitHub
-2. Navigate to Settings > Pages
-3. Under "Source", select "Deploy from a branch"
-4. Select the `gh-pages` branch and `/ (root)` folder
-5. Click Save
+The deployment process is fully automated:
+- When you push to `main` or `master`, GitHub Actions automatically:
+  1. Checks out the code
+  2. Installs Node.js and dependencies
+  3. Builds the React application
+  4. Deploys the `dist/` folder to GitHub Pages
 
 Your site will be live at `https://xcaplin.github.io/tender-banana/`
+
+### Manual Deployment
+
+You can also manually trigger a deployment:
+1. Go to the **Actions** tab in your repository
+2. Select the "Deploy to GitHub Pages" workflow
+3. Click "Run workflow"
+4. Select the branch and click "Run workflow"
+
+### Deployment Status
+
+Check the status of your deployments:
+- Visit the **Actions** tab in your repository
+- Each deployment will show as a workflow run
+- Click on any run to see detailed logs
 
 ## Project Structure
 
 ```
 tender-banana/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml  # GitHub Actions deployment workflow
 ├── public/              # Static assets
 ├── src/
 │   ├── App.css         # App component styles
 │   ├── App.jsx         # Main App component
 │   ├── index.css       # Global styles
 │   └── main.jsx        # Application entry point
+├── .gitignore          # Git ignore file
 ├── index.html          # HTML template
 ├── package.json        # Project dependencies and scripts
 ├── vite.config.js      # Vite configuration
@@ -129,7 +144,7 @@ The Aptos font is used throughout the application with fallbacks defined in `src
 - Vite 6
 - CSS3 (Custom Properties)
 - GitHub Pages for hosting
-- gh-pages for deployment
+- GitHub Actions for automated deployment
 
 ## Browser Support
 
