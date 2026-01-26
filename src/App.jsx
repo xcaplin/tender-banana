@@ -12,6 +12,10 @@ function App() {
   // Detail panel state
   const [selectedTenderId, setSelectedTenderId] = useState(null)
 
+  // Collapse states
+  const [isSummaryCollapsed, setIsSummaryCollapsed] = useState(false)
+  const [isFilterCollapsed, setIsFilterCollapsed] = useState(false)
+
   // Get selected tender object
   const selectedTender = selectedTenderId
     ? tenders.find(t => t.id === selectedTenderId)
@@ -262,7 +266,20 @@ function App() {
       </header>
 
       {/* Summary Cards */}
-      <div className="summary-cards">
+      <div className={`summary-section ${isSummaryCollapsed ? 'collapsed' : ''}`}>
+        <button
+          className="collapse-toggle"
+          onClick={() => setIsSummaryCollapsed(!isSummaryCollapsed)}
+          aria-label={isSummaryCollapsed ? 'Expand summary cards' : 'Collapse summary cards'}
+        >
+          <span className="toggle-label">Analytics Summary</span>
+          <span className="toggle-icon">{isSummaryCollapsed ? '▼' : '▲'}</span>
+        </button>
+        <div className="summary-cards"
+          style={{
+            display: isSummaryCollapsed ? 'none' : 'grid'
+          }}
+        >
         {/* Card 1 - Total Active Opportunities (Informational) */}
         <div className="summary-card">
           <div className="card-icon">📊</div>
@@ -323,9 +340,23 @@ function App() {
             <div className="card-subtitle">Combined contract value</div>
           </div>
         </div>
+        </div>
       </div>
 
-      <div className="filter-bar">
+      <div className={`filter-section ${isFilterCollapsed ? 'collapsed' : ''}`}>
+        <button
+          className="collapse-toggle filter-toggle"
+          onClick={() => setIsFilterCollapsed(!isFilterCollapsed)}
+          aria-label={isFilterCollapsed ? 'Expand filters' : 'Collapse filters'}
+        >
+          <span className="toggle-label">Filters & Controls</span>
+          <span className="toggle-icon">{isFilterCollapsed ? '▼' : '▲'}</span>
+        </button>
+        <div className="filter-bar"
+          style={{
+            display: isFilterCollapsed ? 'none' : 'block'
+          }}
+        >
         <div className="filter-controls">
           <div className="filter-group">
             <label htmlFor="status-filter">Status</label>
@@ -393,6 +424,7 @@ function App() {
 
         <div className="tender-count">
           Showing <strong>{filteredAndSortedTenders.length}</strong> of <strong>{tenders.length}</strong> opportunities
+        </div>
         </div>
       </div>
 

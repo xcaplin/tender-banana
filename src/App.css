@@ -25,11 +25,7 @@
 /* Filter Bar */
 .filter-bar {
   background-color: var(--card-background);
-  border-bottom: 1px solid var(--border-color);
   padding: 1.5rem 2rem;
-  position: sticky;
-  top: 65px;
-  z-index: 99;
 }
 
 .filter-controls {
@@ -129,6 +125,51 @@
 .tender-count strong {
   color: var(--sirona-purple);
   font-weight: 600;
+}
+
+/* Collapse Toggle */
+.collapse-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background-color: var(--card-background);
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.collapse-toggle:hover {
+  background-color: rgba(123, 45, 142, 0.05);
+}
+
+.toggle-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.toggle-icon {
+  color: var(--sirona-purple);
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+}
+
+.summary-section,
+.filter-section {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.filter-section .collapse-toggle {
+  position: sticky;
+  top: 65px;
+  z-index: 99;
+  border-top: 1px solid var(--border-color);
 }
 
 /* Summary Cards */
@@ -406,6 +447,14 @@
 }
 
 @media (max-width: 768px) {
+  .collapse-toggle {
+    padding: 0.875rem 1.5rem;
+  }
+
+  .toggle-label {
+    font-size: 0.8125rem;
+  }
+
   .summary-cards {
     grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
@@ -437,8 +486,11 @@
     font-size: 1.25rem;
   }
 
-  .filter-bar {
+  .filter-section .collapse-toggle {
     top: 53px;
+  }
+
+  .filter-bar {
     padding: 1rem 1.5rem;
   }
 
@@ -488,6 +540,18 @@
 }
 
 @media (max-width: 480px) {
+  .collapse-toggle {
+    padding: 0.75rem 1rem;
+  }
+
+  .toggle-label {
+    font-size: 0.75rem;
+  }
+
+  .toggle-icon {
+    font-size: 0.6875rem;
+  }
+
   .summary-cards {
     grid-template-columns: 1fr;
     gap: 1rem;
