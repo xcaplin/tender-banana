@@ -311,6 +311,85 @@ function App() {
   const isAlignmentActive = sortBy === 'alignment-desc'
   const isValueActive = sortBy === 'value-high'
 
+  // CSV Export functionality
+  const escapeCSV = (value) => {
+    if (value === null || value === undefined) return ''
+    const stringValue = String(value)
+    // Escape double quotes by doubling them, and wrap in quotes if contains comma, quote, or newline
+    if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+      return `"${stringValue.replace(/"/g, '""')}"`
+    }
+    return stringValue
+  }
+
+  const formatDateForCSV = (dateString) => {
+    const date = new Date(dateString)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const generateCSV = () => {
+    // CSV Headers
+    const headers = [
+      'Title',
+      'Organization',
+      'Value',
+      'Deadline',
+      'Status',
+      'Recommendation',
+      'Alignment Score',
+      'Categories'
+    ]
+
+    // Convert tenders to CSV rows
+    const rows = filteredAndSortedTenders.map(tender => [
+      escapeCSV(tender.title),
+      escapeCSV(tender.organization),
+      tender.value, // Raw number, no currency symbol
+      formatDateForCSV(tender.deadline),
+      escapeCSV(tender.status),
+      escapeCSV(tender.sirona_fit.recommendation),
+      tender.sirona_fit.alignment_score,
+      escapeCSV(tender.categories.join(', '))
+    ])
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n')
+
+    return csvContent
+  }
+
+  const handleExportCSV = () => {
+    if (filteredAndSortedTenders.length === 0) return
+
+    const csvContent = generateCSV()
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    // Generate filename with current date
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    const filename = `sirona-tenders-${year}-${month}-${day}.csv`
+
+    // Create temporary link and trigger download
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    // Clean up the URL object
+    URL.revokeObjectURL(url)
+  }
+
   // Loading screen
   if (isLoading) {
     return (
@@ -510,8 +589,22 @@ function App() {
           </div>
         </div>
 
-        <div className="tender-count">
-          Showing <strong>{filteredAndSortedTenders.length}</strong> of <strong>{tenders.length}</strong> opportunities
+        <div className="filter-bottom-row">
+          <div className="tender-count">
+            Showing <strong>{filteredAndSortedTenders.length}</strong> of <strong>{tenders.length}</strong> opportunities
+          </div>
+
+          <button
+            className="export-btn"
+            onClick={handleExportCSV}
+            disabled={filteredAndSortedTenders.length === 0}
+            aria-label={`Export ${filteredAndSortedTenders.length} tenders to CSV`}
+          >
+            <span className="export-icon">📥</span>
+            <span className="export-text">
+              Export {filteredAndSortedTenders.length === tenders.length ? 'All' : ''} ({filteredAndSortedTenders.length} {filteredAndSortedTenders.length === 1 ? 'tender' : 'tenders'})
+            </span>
+          </button>
         </div>
         </div>
       </div>

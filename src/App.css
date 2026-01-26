@@ -281,6 +281,55 @@
   font-weight: 600;
 }
 
+/* Filter Bottom Row - Contains tender count and export button */
+.filter-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Export Button */
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background-color: white;
+  color: var(--sirona-purple);
+  border: 2px solid var(--sirona-purple);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.export-btn:hover:not(:disabled) {
+  background-color: var(--sirona-purple);
+  color: white;
+}
+
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+.export-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.export-text {
+  line-height: 1;
+}
+
 /* Collapse Toggle */
 .collapse-toggle {
   width: 100%;
