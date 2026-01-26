@@ -25,7 +25,104 @@ Visit the live dashboard at: **https://xcaplin.github.io/tender-banana/**
 
 This application is a single-page React application that deploys automatically to GitHub Pages via GitHub Actions. Whenever changes are pushed to the main branch, the application is automatically rebuilt and deployed with zero downtime.
 
-The dashboard loads tender data from a static JSON file and provides client-side filtering, sorting, and analysis - no backend infrastructure required.
+The dashboard supports two data modes:
+- **Sample Data**: 10 realistic NHS tender opportunities with pre-analyzed strategic fit assessments
+- **Live Data**: Real-time tender data fetched from UK government procurement APIs (Contracts Finder, Find a Tender Service)
+
+## AI-Powered Analysis
+
+The dashboard integrates with Claude (Anthropic's AI) to automatically analyze tender opportunities and generate strategic fit assessments.
+
+### Setting Up Claude API Integration
+
+1. **Get an API Key**:
+   - Visit [Anthropic Console](https://console.anthropic.com/settings/keys)
+   - Sign in or create an account
+   - Navigate to "API Keys" section
+   - Click "Create Key" and copy your API key
+
+2. **Configure the API Key** (choose one method):
+
+   **Option A: Environment Variable (Recommended for Development)**
+   ```bash
+   # Create a .env file in the project root
+   echo "VITE_ANTHROPIC_API_KEY=your_api_key_here" > .env
+   ```
+
+   **Option B: UI Configuration (Recommended for Production)**
+   - The dashboard will provide a UI to enter your API key
+   - The key will be stored securely in browser localStorage
+   - You can access this via the dashboard settings (coming in Stage 9B)
+
+3. **Using the API**:
+   ```javascript
+   import { setApiKey, analyzeTenderWithClaude } from './services/claudeAnalyzer.js'
+
+   // Set your API key (one time)
+   setApiKey('your_api_key_here')
+
+   // Analyze a tender
+   const enrichedTender = await analyzeTenderWithClaude(tender)
+   ```
+
+### AI Analysis Features
+
+The Claude integration provides:
+
+- **Alignment Score** (0-100): Strategic fit assessment based on Sirona's service portfolio
+- **Rationale**: 2-3 sentence explanation of bid recommendation
+- **Win Themes**: 3-5 specific competitive advantages Sirona could leverage
+- **Competitor Analysis**: Identification of likely competing organizations
+- **Risk Assessment**: 2-4 key concerns or weak spots to address
+- **Bid Recommendation**: Strong Go / Conditional Go / No Bid / Monitor
+- **Category Classification**: Automatic categorization by service type
+
+### Cost Estimation
+
+AI analysis costs are minimal:
+- **Claude Sonnet 4 Pricing**: ~£0.0024 per tender (~$3/M input tokens, $15/M output tokens)
+- **Batch Analysis**: Process multiple tenders with automatic rate limiting
+- **Cost Preview**: See estimated costs before processing
+
+### API Usage
+
+```javascript
+// Single tender analysis
+import { analyzeTenderWithClaude } from './services/claudeAnalyzer.js'
+
+const result = await analyzeTenderWithClaude(tender)
+console.log(result.sirona_fit)
+
+// Batch analysis with progress tracking
+import { analyzeTendersBatch, estimateAnalysisCost } from './services/claudeAnalyzer.js'
+
+// Check cost first
+const cost = estimateAnalysisCost(tenders.length)
+console.log(`Estimated cost: ${cost.formattedCostGBP}`)
+
+// Process batch
+const results = await analyzeTendersBatch(tenders, (current, total, tender) => {
+  console.log(`Analyzed ${current}/${total}: ${tender.title}`)
+})
+
+// Check API status
+import { checkApiStatus } from './services/claudeAnalyzer.js'
+
+const status = checkApiStatus()
+if (status.isReady) {
+  console.log('API ready:', status.message)
+} else {
+  console.log('API not configured:', status.instructions)
+}
+```
+
+### Security Notes
+
+- **Never commit API keys** to version control
+- Add `.env` to your `.gitignore` file
+- API keys stored in localStorage are accessible to JavaScript code on the same domain
+- Consider using environment variables for production deployments
+- Rotate API keys regularly for security
 
 ## Project Structure
 
@@ -41,11 +138,15 @@ tender-banana/
 │   ├── App.css              # Application styles and responsive design
 │   ├── main.jsx             # React entry point
 │   ├── index.css            # Global styles and CSS custom properties
-│   └── data/
-│       └── tenders.js       # Tender opportunity data
+│   ├── data/
+│   │   └── tenders.js       # Tender opportunity data
+│   └── services/
+│       ├── tenderFetcher.js # Live data fetching from UK government APIs
+│       └── claudeAnalyzer.js # AI-powered tender analysis using Claude
 ├── index.html               # HTML shell with meta tags
 ├── vite.config.js           # Vite build configuration
 ├── package.json             # Dependencies and scripts
+├── .env                     # Environment variables (not in git)
 └── README.md                # This file
 ```
 
@@ -200,6 +301,8 @@ Check deployment status:
 - **React 18**: Modern UI framework with hooks
 - **Vite 6**: Lightning-fast build tool and dev server
 - **CSS3**: Custom properties for theming, Grid and Flexbox for layouts
+- **Claude AI (Anthropic)**: AI-powered tender analysis and strategic recommendations
+- **Government APIs**: Contracts Finder & Find a Tender Service integration
 - **GitHub Pages**: Free hosting for static sites
 - **GitHub Actions**: Automated CI/CD pipeline
 
@@ -222,17 +325,27 @@ This dashboard meets WCAG 2.1 AA standards:
 - Focus indicators on all interactive elements
 - Semantic HTML structure
 
+## Implemented Features
+
+The following features are fully implemented:
+
+- ✅ **CSV Export**: Download tender data and analytics in CSV format
+- ✅ **Live Data Integration**: Automatic tender discovery from Contracts Finder and Find a Tender APIs
+- ✅ **AI-Powered Analysis**: Claude integration for strategic fit assessment
+- ✅ **Collapsible Panels**: Maximize screen space with expandable sections
+- ✅ **Interactive Analytics**: Clickable summary cards for quick filtering
+
 ## Future Enhancements
 
 Potential features for future development:
 
-- **CSV Export**: Download tender data and analytics
-- **Contracts Finder API Integration**: Automatic tender discovery
 - **Email Alerts**: Notifications for new high-value opportunities
 - **Team Collaboration**: Comments and decision tracking
 - **Historical Analytics**: Trend analysis and win/loss tracking
 - **Custom Scoring Models**: Configurable alignment criteria
 - **Multi-User Support**: Role-based access control
+- **Automated Scheduling**: Periodic tender fetching and analysis
+- **Dashboard Customization**: User-configurable widgets and layouts
 
 ## Customization
 
