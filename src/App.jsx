@@ -1,6 +1,47 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, Component } from 'react'
 import './App.css'
 import tenders from './data/tenders.js'
+
+// Error Boundary Component
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="app">
+          <header className="header" role="banner">
+            <h1>Sirona Tender Intelligence Dashboard</h1>
+          </header>
+          <div className="error-container">
+            <div className="error-icon">⚠️</div>
+            <h2>Something Went Wrong</h2>
+            <p>We encountered an unexpected error. Please try refreshing the page.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="error-reload-btn"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
 
 function App() {
   // Filter states
@@ -15,6 +56,17 @@ function App() {
   // Collapse states
   const [isSummaryCollapsed, setIsSummaryCollapsed] = useState(false)
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(false)
+
+  // Loading state
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Simulate initial data load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Get selected tender object
   const selectedTender = selectedTenderId
@@ -259,9 +311,45 @@ function App() {
   const isAlignmentActive = sortBy === 'alignment-desc'
   const isValueActive = sortBy === 'value-high'
 
+  // Loading screen
+  if (isLoading) {
+    return (
+      <div className="app">
+        <header className="header">
+          <h1>Sirona Tender Intelligence Dashboard</h1>
+        </header>
+        <div className="loading-container" role="status" aria-live="polite">
+          <div className="loading-spinner"></div>
+          <p className="loading-text">Loading tender opportunities...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Empty data state (if no tenders exist at all)
+  if (tenders.length === 0) {
+    return (
+      <div className="app">
+        <header className="header">
+          <h1>Sirona Tender Intelligence Dashboard</h1>
+        </header>
+        <div className="empty-data-container">
+          <div className="empty-icon">📋</div>
+          <h2>No Tender Data Available</h2>
+          <p>There are currently no tender opportunities in the system. Please check back later.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="app">
-      <header className="header">
+      {/* Skip to main content link for keyboard users */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+
+      <header className="header" role="banner">
         <h1>Sirona Tender Intelligence Dashboard</h1>
       </header>
 
@@ -428,11 +516,13 @@ function App() {
         </div>
       </div>
 
-      <main className="main-content">
+      <main className="main-content" id="main-content" role="main">
         <div className="tender-list">
           {filteredAndSortedTenders.length === 0 ? (
-            <div className="no-results">
-              <p>No tenders match your filter criteria.</p>
+            <div className="no-results" role="status" aria-live="polite">
+              <div className="no-results-icon">🔍</div>
+              <h2>No Tenders Match Your Filters</h2>
+              <p>Try adjusting your filter criteria or clearing all filters to see more opportunities.</p>
               <button
                 onClick={() => {
                   setStatusFilter('all')
@@ -440,6 +530,7 @@ function App() {
                   setCategoryFilter([])
                 }}
                 className="reset-filters-btn"
+                aria-label="Clear all filters and show all tenders"
               >
                 Clear All Filters
               </button>
@@ -452,6 +543,15 @@ function App() {
                   key={tender.id}
                   className="tender-row"
                   onClick={() => setSelectedTenderId(tender.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setSelectedTenderId(tender.id)
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View details for ${tender.title}`}
                 >
                   <div className="tender-main">
                     <div className="tender-header">
@@ -511,12 +611,19 @@ function App() {
           <div
             className="detail-overlay"
             onClick={() => setSelectedTenderId(null)}
+            aria-hidden="true"
           />
-          <div className="detail-panel">
+          <div
+            className="detail-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="detail-title"
+          >
             <button
               className="detail-close"
               onClick={() => setSelectedTenderId(null)}
               aria-label="Close detail panel"
+              autoFocus
             >
               ✕
             </button>
@@ -524,7 +631,7 @@ function App() {
             <div className="detail-content">
               {/* Header Section */}
               <div className="detail-header">
-                <h2 className="detail-title">{selectedTender.title}</h2>
+                <h2 className="detail-title" id="detail-title">{selectedTender.title}</h2>
                 <p className="detail-organization">{selectedTender.organization}</p>
                 <div className="detail-header-badges">
                   <div className="detail-badge-item">
@@ -695,4 +802,13 @@ function App() {
   )
 }
 
-export default App
+// Wrap App with Error Boundary
+function AppWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  )
+}
+
+export default AppWithErrorBoundary
