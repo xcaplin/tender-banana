@@ -186,11 +186,144 @@ function App() {
     })
   }
 
+  // Summary card calculations
+  const summaryStats = useMemo(() => {
+    const now = new Date()
+
+    // Total active opportunities
+    const totalActive = filteredAndSortedTenders.length
+
+    // Strong recommendations
+    const strongGo = filteredAndSortedTenders.filter(
+      t => t.sirona_fit.recommendation === 'Strong Go'
+    )
+    const strongGoCount = strongGo.length
+    const strongGoValue = strongGo.reduce((sum, t) => sum + t.value, 0)
+
+    // Average alignment
+    const avgAlignment = totalActive > 0
+      ? Math.round(
+          filteredAndSortedTenders.reduce((sum, t) => sum + t.sirona_fit.alignment_score, 0) / totalActive
+        )
+      : 0
+
+    // Urgent deadlines (within 30 days)
+    const urgentTenders = filteredAndSortedTenders.filter(t => {
+      const deadline = new Date(t.deadline)
+      const daysUntil = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24))
+      return daysUntil >= 0 && daysUntil <= 30
+    })
+    const urgentCount = urgentTenders.length
+
+    // Total pipeline value
+    const totalValue = filteredAndSortedTenders.reduce((sum, t) => sum + t.value, 0)
+
+    return {
+      totalActive,
+      strongGoCount,
+      strongGoValue,
+      avgAlignment,
+      urgentCount,
+      totalValue
+    }
+  }, [filteredAndSortedTenders])
+
+  // Card click handlers
+  const handleStrongGoClick = () => {
+    setRecommendationFilter('Strong Go')
+  }
+
+  const handleAlignmentClick = () => {
+    setSortBy('alignment-desc')
+  }
+
+  const handleUrgentClick = () => {
+    // Filter to show tenders with deadline within 30 days
+    const now = new Date()
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    setSortBy('deadline-asc')
+    // Note: We can't directly filter by date range with current filters,
+    // but sorting by deadline-asc will show urgent ones first
+  }
+
+  const handleValueClick = () => {
+    setSortBy('value-high')
+  }
+
+  // Check if cards are in active state
+  const isStrongGoActive = recommendationFilter === 'Strong Go'
+  const isAlignmentActive = sortBy === 'alignment-desc'
+  const isValueActive = sortBy === 'value-high'
+
   return (
     <div className="app">
       <header className="header">
         <h1>Sirona Tender Intelligence Dashboard</h1>
       </header>
+
+      {/* Summary Cards */}
+      <div className="summary-cards">
+        {/* Card 1 - Total Active Opportunities (Informational) */}
+        <div className="summary-card">
+          <div className="card-icon">📊</div>
+          <div className="card-content">
+            <div className="card-label">Total Active Opportunities</div>
+            <div className="card-value">{summaryStats.totalActive}</div>
+          </div>
+        </div>
+
+        {/* Card 2 - Strong Recommendations (Clickable) */}
+        <div
+          className={`summary-card clickable ${isStrongGoActive ? 'active' : ''}`}
+          onClick={handleStrongGoClick}
+        >
+          <div className="card-icon">✅</div>
+          <div className="card-content">
+            <div className="card-label">Strong Recommendations</div>
+            <div className="card-value">{summaryStats.strongGoCount}</div>
+            <div className="card-subtitle">{formatCurrency(summaryStats.strongGoValue)} total value</div>
+          </div>
+        </div>
+
+        {/* Card 3 - Average Alignment (Clickable) */}
+        <div
+          className={`summary-card clickable ${isAlignmentActive ? 'active' : ''}`}
+          onClick={handleAlignmentClick}
+        >
+          <div className="card-icon">🎯</div>
+          <div className="card-content">
+            <div className="card-label">Average Alignment</div>
+            <div className="card-value">{summaryStats.avgAlignment}%</div>
+            <div className="card-subtitle">Strategic fit score</div>
+          </div>
+        </div>
+
+        {/* Card 4 - Urgent Deadlines (Clickable) */}
+        <div
+          className="summary-card clickable"
+          onClick={handleUrgentClick}
+        >
+          <div className="card-icon">⏰</div>
+          <div className="card-content">
+            <div className="card-label">Urgent Deadlines</div>
+            <div className="card-value">{summaryStats.urgentCount}</div>
+            <div className="card-subtitle">Within 30 days</div>
+          </div>
+        </div>
+
+        {/* Card 5 - Total Pipeline Value (Clickable) */}
+        <div
+          className={`summary-card clickable ${isValueActive ? 'active' : ''}`}
+          onClick={handleValueClick}
+        >
+          <div className="card-icon">💷</div>
+          <div className="card-content">
+            <div className="card-label">Total Pipeline Value</div>
+            <div className="card-value">{formatCurrency(summaryStats.totalValue)}</div>
+            <div className="card-subtitle">Combined contract value</div>
+          </div>
+        </div>
+      </div>
 
       <div className="filter-bar">
         <div className="filter-controls">
