@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, Component } from 'react'
 import './App.css'
 import tenders from './data/tenders.js'
+import { fetchAndProcessTenders } from './services/tenderFetcher.js'
 
 // Error Boundary Component
 class ErrorBoundary extends Component {
@@ -60,6 +61,36 @@ function App() {
   // Loading state
   const [isLoading, setIsLoading] = useState(true)
 
+  // Live data state
+  const [dataSource, setDataSource] = useState('sample') // 'sample' | 'live'
+  const [liveTenders, setLiveTenders] = useState([])
+  const [isFetching, setIsFetching] = useState(false)
+  const [fetchError, setFetchError] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState(null)
+  const [isSearchParamsCollapsed, setIsSearchParamsCollapsed] = useState(false)
+  const [showInfoTooltip, setShowInfoTooltip] = useState(false)
+
+  // Search parameters for live data
+  const [searchParams, setSearchParams] = useState(() => {
+    // Load from localStorage or use defaults
+    const saved = localStorage.getItem('tenderSearchParams')
+    if (saved) {
+      try {
+        return JSON.parse(saved)
+      } catch (error) {
+        console.error('Error parsing saved search params:', error)
+      }
+    }
+    return {
+      keywords: 'community health NHS',
+      location: 'Bristol, North Somerset, South Gloucestershire',
+      minValue: '',
+      maxValue: '',
+      publishedFrom: '',
+      publishedTo: ''
+    }
+  })
+
   // Simulate initial data load
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -67,6 +98,19 @@ function App() {
     }, 800)
     return () => clearTimeout(timer)
   }, [])
+
+  // Load last fetch timestamp from localStorage
+  useEffect(() => {
+    const savedTimestamp = localStorage.getItem('lastTenderFetch')
+    if (savedTimestamp) {
+      setLastUpdated(savedTimestamp)
+    }
+  }, [])
+
+  // Save search parameters to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('tenderSearchParams', JSON.stringify(searchParams))
+  }, [searchParams])
 
   // Get selected tender object
   const selectedTender = selectedTenderId
@@ -96,18 +140,21 @@ function App() {
     }
   }, [selectedTenderId])
 
+  // Get current tender source based on data mode
+  const currentTenders = dataSource === 'live' ? liveTenders : tenders
+
   // Extract unique categories from all tenders
   const allCategories = useMemo(() => {
     const categorySet = new Set()
-    tenders.forEach(tender => {
+    currentTenders.forEach(tender => {
       tender.categories.forEach(cat => categorySet.add(cat))
     })
     return Array.from(categorySet).sort()
-  }, [])
+  }, [currentTenders])
 
   // Filter and sort tenders
   const filteredAndSortedTenders = useMemo(() => {
-    let filtered = tenders.filter(tender => {
+    let filtered = currentTenders.filter(tender => {
       // Status filter
       if (statusFilter !== 'all' && tender.status !== statusFilter) {
         return false
@@ -311,6 +358,96 @@ function App() {
   const isAlignmentActive = sortBy === 'alignment-desc'
   const isValueActive = sortBy === 'value-high'
 
+  // Live data functions
+  const handleFetchTenders = async () => {
+    setIsFetching(true)
+    setFetchError(null)
+
+    try {
+      console.log('Fetching tenders with params:', searchParams)
+
+      // Build API parameters
+      const apiParams = {
+        keywords: searchParams.keywords || undefined,
+        location: searchParams.location || undefined,
+        minValue: searchParams.minValue ? parseInt(searchParams.minValue) : undefined,
+        maxValue: searchParams.maxValue ? parseInt(searchParams.maxValue) : undefined,
+        publishedFrom: searchParams.publishedFrom || undefined,
+        publishedTo: searchParams.publishedTo || undefined,
+      }
+
+      const fetchedTenders = await fetchAndProcessTenders(apiParams)
+
+      if (fetchedTenders && fetchedTenders.length > 0) {
+        setLiveTenders(fetchedTenders)
+        setDataSource('live')
+        const timestamp = new Date().toISOString()
+        setLastUpdated(timestamp)
+        localStorage.setItem('lastTenderFetch', timestamp)
+        console.log(`Successfully loaded ${fetchedTenders.length} tenders from live sources`)
+      } else {
+        setFetchError('No tenders found matching your search criteria. Try adjusting your parameters or use sample data.')
+      }
+    } catch (error) {
+      console.error('Error fetching tenders:', error)
+      setFetchError('Unable to fetch live data. This may be due to API access restrictions. You can continue using sample data or try again later.')
+      setDataSource('sample') // Fall back to sample data
+    } finally {
+      setIsFetching(false)
+    }
+  }
+
+  const handleRefreshData = () => {
+    if (dataSource === 'live') {
+      handleFetchTenders()
+    }
+  }
+
+  const handleDataSourceToggle = () => {
+    if (dataSource === 'sample') {
+      // Switching to live mode - check if we have data
+      if (liveTenders.length > 0) {
+        setDataSource('live')
+      } else {
+        // No live data yet, stay in sample mode but expand search params
+        setIsSearchParamsCollapsed(false)
+      }
+    } else {
+      // Switching back to sample mode
+      setDataSource('sample')
+    }
+  }
+
+  const handleResetSearchParams = () => {
+    setSearchParams({
+      keywords: 'community health NHS',
+      location: 'Bristol, North Somerset, South Gloucestershire',
+      minValue: '',
+      maxValue: '',
+      publishedFrom: '',
+      publishedTo: ''
+    })
+  }
+
+  const handleSearchParamChange = (field, value) => {
+    setSearchParams(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const formatLastUpdated = (timestamp) => {
+    if (!timestamp) return 'Never'
+    const date = new Date(timestamp)
+    return date.toLocaleString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
   // CSV Export functionality
   const escapeCSV = (value) => {
     if (value === null || value === undefined) return ''
@@ -405,8 +542,8 @@ function App() {
     )
   }
 
-  // Empty data state (if no tenders exist at all)
-  if (tenders.length === 0) {
+  // Empty data state (if no tenders exist at all for current source)
+  if (currentTenders.length === 0 && dataSource === 'live') {
     return (
       <div className="app">
         <header className="header">
@@ -414,8 +551,14 @@ function App() {
         </header>
         <div className="empty-data-container">
           <div className="empty-icon">📋</div>
-          <h2>No Tender Data Available</h2>
-          <p>There are currently no tender opportunities in the system. Please check back later.</p>
+          <h2>No Live Tender Data</h2>
+          <p>Click "Fetch Tenders" to load live opportunities from UK government procurement sources.</p>
+          <button
+            onClick={() => setDataSource('sample')}
+            className="reset-filters-btn"
+          >
+            Switch to Sample Data
+          </button>
         </div>
       </div>
     )
@@ -429,8 +572,195 @@ function App() {
       </a>
 
       <header className="header" role="banner">
-        <h1>Sirona Tender Intelligence Dashboard</h1>
+        <div className="header-content">
+          <h1>Sirona Tender Intelligence Dashboard</h1>
+          <div className="header-controls">
+            <button
+              className={`data-source-toggle ${dataSource === 'live' ? 'live-active' : ''}`}
+              onClick={handleDataSourceToggle}
+              aria-label={`Currently using ${dataSource} data. Click to toggle.`}
+            >
+              <span className="data-source-icon">{dataSource === 'live' ? '🔴' : '📋'}</span>
+              <span className="data-source-text">
+                {dataSource === 'live' ? 'Using Live Data' : 'Using Sample Data'}
+              </span>
+            </button>
+
+            <div className="info-tooltip-container">
+              <button
+                className="info-icon-btn"
+                onClick={() => setShowInfoTooltip(!showInfoTooltip)}
+                aria-label="Information about data sources"
+              >
+                ℹ️
+              </button>
+              {showInfoTooltip && (
+                <div className="info-tooltip">
+                  <button
+                    className="tooltip-close"
+                    onClick={() => setShowInfoTooltip(false)}
+                    aria-label="Close tooltip"
+                  >
+                    ✕
+                  </button>
+                  <h4>About Data Sources</h4>
+                  <ul>
+                    <li><strong>Sample Data:</strong> Realistic preview with 10 NHS tenders</li>
+                    <li><strong>Live Data:</strong> Real tenders from UK government procurement sources (Contracts Finder, Find a Tender)</li>
+                    <li><strong>Note:</strong> Live data may have CORS restrictions in browser. AI strategic analysis is currently placeholder and will be enhanced in future releases.</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {dataSource === 'live' && (
+              <button
+                className="refresh-btn"
+                onClick={handleRefreshData}
+                disabled={isFetching}
+                aria-label="Refresh live data"
+              >
+                <span className="refresh-icon">↻</span>
+                <span className="refresh-text">Refresh</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {dataSource === 'live' && lastUpdated && (
+          <div className="live-data-banner">
+            Live Data Mode • Last updated: {formatLastUpdated(lastUpdated)}
+          </div>
+        )}
       </header>
+
+      {/* Search Parameters Panel - Only visible in live data mode or when no live data */}
+      {(dataSource === 'live' || liveTenders.length === 0) && (
+        <div className={`search-params-section ${isSearchParamsCollapsed ? 'collapsed' : ''}`}>
+          <button
+            className="collapse-toggle"
+            onClick={() => setIsSearchParamsCollapsed(!isSearchParamsCollapsed)}
+            aria-label={isSearchParamsCollapsed ? 'Expand search parameters' : 'Collapse search parameters'}
+          >
+            <span className="toggle-label">Search Parameters</span>
+            <span className="toggle-icon">{isSearchParamsCollapsed ? '▼' : '▲'}</span>
+          </button>
+
+          <div
+            className="search-params-content"
+            style={{
+              display: isSearchParamsCollapsed ? 'none' : 'block'
+            }}
+          >
+            <div className="search-params-grid">
+              <div className="param-group">
+                <label htmlFor="keywords">Keywords</label>
+                <input
+                  id="keywords"
+                  type="text"
+                  value={searchParams.keywords}
+                  onChange={(e) => handleSearchParamChange('keywords', e.target.value)}
+                  placeholder="e.g., community health, mental health"
+                  className="param-input"
+                />
+              </div>
+
+              <div className="param-group">
+                <label htmlFor="location">Location/Region</label>
+                <input
+                  id="location"
+                  type="text"
+                  value={searchParams.location}
+                  onChange={(e) => handleSearchParamChange('location', e.target.value)}
+                  placeholder="e.g., Bristol, North Somerset"
+                  className="param-input"
+                />
+              </div>
+
+              <div className="param-group">
+                <label htmlFor="minValue">Min Value (£)</label>
+                <input
+                  id="minValue"
+                  type="number"
+                  value={searchParams.minValue}
+                  onChange={(e) => handleSearchParamChange('minValue', e.target.value)}
+                  placeholder="e.g., 100000"
+                  className="param-input"
+                />
+              </div>
+
+              <div className="param-group">
+                <label htmlFor="maxValue">Max Value (£)</label>
+                <input
+                  id="maxValue"
+                  type="number"
+                  value={searchParams.maxValue}
+                  onChange={(e) => handleSearchParamChange('maxValue', e.target.value)}
+                  placeholder="e.g., 10000000"
+                  className="param-input"
+                />
+              </div>
+
+              <div className="param-group">
+                <label htmlFor="publishedFrom">Published From</label>
+                <input
+                  id="publishedFrom"
+                  type="date"
+                  value={searchParams.publishedFrom}
+                  onChange={(e) => handleSearchParamChange('publishedFrom', e.target.value)}
+                  className="param-input"
+                />
+              </div>
+
+              <div className="param-group">
+                <label htmlFor="publishedTo">Published To</label>
+                <input
+                  id="publishedTo"
+                  type="date"
+                  value={searchParams.publishedTo}
+                  onChange={(e) => handleSearchParamChange('publishedTo', e.target.value)}
+                  className="param-input"
+                />
+              </div>
+            </div>
+
+            <div className="search-params-actions">
+              <button
+                className="fetch-tenders-btn"
+                onClick={handleFetchTenders}
+                disabled={isFetching}
+              >
+                {isFetching ? (
+                  <>
+                    <span className="button-spinner"></span>
+                    <span>Fetching...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🔍</span>
+                    <span>Fetch Tenders</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                className="reset-params-btn"
+                onClick={handleResetSearchParams}
+                disabled={isFetching}
+              >
+                Reset Parameters
+              </button>
+            </div>
+
+            {fetchError && (
+              <div className="fetch-error-message" role="alert">
+                <span className="error-icon">⚠️</span>
+                <span>{fetchError}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className={`summary-section ${isSummaryCollapsed ? 'collapsed' : ''}`}>
@@ -591,7 +921,8 @@ function App() {
 
         <div className="filter-bottom-row">
           <div className="tender-count">
-            Showing <strong>{filteredAndSortedTenders.length}</strong> of <strong>{tenders.length}</strong> opportunities
+            Showing <strong>{filteredAndSortedTenders.length}</strong> of <strong>{currentTenders.length}</strong> opportunities
+            {dataSource === 'live' && <span className="data-source-badge">Live Data</span>}
           </div>
 
           <button
@@ -602,7 +933,7 @@ function App() {
           >
             <span className="export-icon">📥</span>
             <span className="export-text">
-              Export {filteredAndSortedTenders.length === tenders.length ? 'All' : ''} ({filteredAndSortedTenders.length} {filteredAndSortedTenders.length === 1 ? 'tender' : 'tenders'})
+              Export {filteredAndSortedTenders.length === currentTenders.length ? 'All' : ''} ({filteredAndSortedTenders.length} {filteredAndSortedTenders.length === 1 ? 'tender' : 'tenders'})
             </span>
           </button>
         </div>
