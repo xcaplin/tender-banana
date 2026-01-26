@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import './App.css'
 import tenders from './data/tenders.js'
 
@@ -8,6 +8,37 @@ function App() {
   const [recommendationFilter, setRecommendationFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState([])
   const [sortBy, setSortBy] = useState('deadline-asc')
+
+  // Detail panel state
+  const [selectedTenderId, setSelectedTenderId] = useState(null)
+
+  // Get selected tender object
+  const selectedTender = selectedTenderId
+    ? tenders.find(t => t.id === selectedTenderId)
+    : null
+
+  // Handle ESC key to close detail panel
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && selectedTenderId) {
+        setSelectedTenderId(null)
+      }
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [selectedTenderId])
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (selectedTenderId) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [selectedTenderId])
 
   // Extract unique categories from all tenders
   const allCategories = useMemo(() => {
@@ -128,6 +159,22 @@ function App() {
     }
   }
 
+  // Get recommendation icon
+  const getRecommendationIcon = (recommendation) => {
+    switch (recommendation) {
+      case 'Strong Go':
+        return '✓'
+      case 'Conditional Go':
+        return 'ℹ'
+      case 'No Bid':
+        return '✕'
+      case 'Monitor':
+        return '👁'
+      default:
+        return '•'
+    }
+  }
+
   // Toggle category selection
   const toggleCategory = (category) => {
     setCategoryFilter(prev => {
@@ -236,7 +283,11 @@ function App() {
             filteredAndSortedTenders.map(tender => {
               const deadline = formatDeadline(tender.deadline)
               return (
-                <div key={tender.id} className="tender-row">
+                <div
+                  key={tender.id}
+                  className="tender-row"
+                  onClick={() => setSelectedTenderId(tender.id)}
+                >
                   <div className="tender-main">
                     <div className="tender-header">
                       <h3 className="tender-title">{tender.title}</h3>
@@ -288,6 +339,189 @@ function App() {
           )}
         </div>
       </main>
+
+      {/* Detail Panel */}
+      {selectedTender && (
+        <>
+          <div
+            className="detail-overlay"
+            onClick={() => setSelectedTenderId(null)}
+          />
+          <div className="detail-panel">
+            <button
+              className="detail-close"
+              onClick={() => setSelectedTenderId(null)}
+              aria-label="Close detail panel"
+            >
+              ✕
+            </button>
+
+            <div className="detail-content">
+              {/* Header Section */}
+              <div className="detail-header">
+                <h2 className="detail-title">{selectedTender.title}</h2>
+                <p className="detail-organization">{selectedTender.organization}</p>
+                <div className="detail-header-badges">
+                  <div className="detail-badge-item">
+                    <label>Contract Value</label>
+                    <span className="detail-value-badge">{formatCurrency(selectedTender.value)}</span>
+                  </div>
+                  <div className="detail-badge-item">
+                    <label>Submission Deadline</label>
+                    <span className={`detail-deadline-badge ${formatDeadline(selectedTender.deadline).urgent ? 'urgent' : ''}`}>
+                      {formatDeadline(selectedTender.deadline).formatted}
+                      <span className="days-text">({formatDeadline(selectedTender.deadline).daysText})</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Overview Section */}
+              <div className="detail-section">
+                <h3 className="section-heading">Tender Summary</h3>
+                <p className="summary-text">{selectedTender.summary}</p>
+
+                <a
+                  href={selectedTender.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="view-tender-btn"
+                >
+                  View Full Tender Notice →
+                </a>
+
+                <div className="detailed-description">
+                  {selectedTender.detailedDescription.split('\n\n').map((paragraph, idx) => (
+                    <p key={idx}>{paragraph}</p>
+                  ))}
+                </div>
+
+                <div className="tender-metadata">
+                  <div className="metadata-item">
+                    <label>Region</label>
+                    <span>{selectedTender.region}</span>
+                  </div>
+                  <div className="metadata-item">
+                    <label>Categories</label>
+                    <div className="category-tags">
+                      {selectedTender.categories.map(cat => (
+                        <span key={cat} className="category-tag">{cat}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="metadata-item">
+                    <label>Status</label>
+                    <span
+                      className="status-badge"
+                      style={{ backgroundColor: getStatusColor(selectedTender.status) }}
+                    >
+                      {selectedTender.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sirona Fit Analysis Section */}
+              <div className="detail-section sirona-fit-section">
+                <h3 className="section-heading sirona-heading">Strategic Fit Analysis</h3>
+
+                <div className="alignment-display">
+                  <div className="alignment-circle">
+                    <svg viewBox="0 0 100 100" className="progress-ring">
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        fill="none"
+                        stroke="#E5E7EB"
+                        strokeWidth="8"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        fill="none"
+                        stroke="var(--sirona-purple)"
+                        strokeWidth="8"
+                        strokeDasharray={`${selectedTender.sirona_fit.alignment_score * 2.827} 283`}
+                        strokeLinecap="round"
+                        transform="rotate(-90 50 50)"
+                      />
+                    </svg>
+                    <div className="alignment-score-display">
+                      <span className="score-number">{selectedTender.sirona_fit.alignment_score}%</span>
+                      <span className="score-label">Strategic Alignment</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="fit-subsection">
+                  <h4 className="subsection-heading">Why This Opportunity Fits Sirona</h4>
+                  <p className="rationale-text">{selectedTender.sirona_fit.rationale}</p>
+                </div>
+
+                <div className="fit-subsection">
+                  <h4 className="subsection-heading">Our Win Themes</h4>
+                  <ul className="win-themes-list">
+                    {selectedTender.sirona_fit.win_themes.map((theme, idx) => (
+                      <li key={idx}>
+                        <span className="check-icon">✓</span>
+                        {theme}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="fit-subsection">
+                  <h4 className="subsection-heading">Competitive Landscape</h4>
+                  <div className="competitor-chips">
+                    {selectedTender.sirona_fit.competitors.map((competitor, idx) => (
+                      <span key={idx} className="competitor-chip">{competitor}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="fit-subsection">
+                  <h4 className="subsection-heading">Risk Factors & Considerations</h4>
+                  <ul className="risk-list">
+                    {selectedTender.sirona_fit.weak_spots.map((risk, idx) => (
+                      <li key={idx}>
+                        <span className="warning-icon">⚠️</span>
+                        {risk}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Recommendation Section */}
+              <div className="detail-section recommendation-section">
+                <h3 className="section-heading">Bid Decision Recommendation</h3>
+
+                <div
+                  className="recommendation-display"
+                  style={{
+                    backgroundColor: getRecommendationColor(selectedTender.sirona_fit.recommendation),
+                    color: 'white'
+                  }}
+                >
+                  <span className="recommendation-icon">
+                    {getRecommendationIcon(selectedTender.sirona_fit.recommendation)}
+                  </span>
+                  <span className="recommendation-text">
+                    {selectedTender.sirona_fit.recommendation}
+                  </span>
+                </div>
+
+                <div className="recommendation-rationale">
+                  <p><strong>Recommendation Rationale:</strong></p>
+                  <p>{selectedTender.sirona_fit.rationale}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       <footer className="footer">
         <p>&copy; 2026 Sirona Medical. All rights reserved.</p>
