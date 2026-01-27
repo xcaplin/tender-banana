@@ -10,6 +10,7 @@ import {
   getApiKey,
   checkApiStatus
 } from './services/claudeAnalyzer.js'
+import * as XLSX from 'xlsx'
 
 // Error Boundary Component
 class ErrorBoundary extends Component {
@@ -94,6 +95,10 @@ function App() {
   const [analyzedTenders, setAnalyzedTenders] = useState(new Set())
   const [tenderAnalysisStatus, setTenderAnalysisStatus] = useState({}) // tenderId -> 'analyzing' | 'success' | 'error'
 
+  // Export state
+  const [showExportDropdown, setShowExportDropdown] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+
   // Search parameters for live data
   const [searchParams, setSearchParams] = useState(() => {
     // Load from localStorage or use defaults
@@ -162,6 +167,17 @@ function App() {
       }
     }
   }, [liveTenders, autoAnalyze, apiKeyStatus, dataSource, isAnalyzing])
+
+  // Close export dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showExportDropdown && !e.target.closest('.export-dropdown-container')) {
+        setShowExportDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showExportDropdown])
 
   // Get selected tender object
   const selectedTender = selectedTenderId
@@ -634,7 +650,7 @@ function App() {
     }
   }
 
-  // CSV Export functionality
+  // Export functionality
   const escapeCSV = (value) => {
     if (value === null || value === undefined) return ''
     const stringValue = String(value)
@@ -653,29 +669,52 @@ function App() {
     return `${year}-${month}-${day}`
   }
 
+  const getAnalysisSource = (tender) => {
+    if (dataSource === 'sample') return 'Sample'
+    if (tender.ai_analyzed || tenderAnalysisStatus[tender.id] === 'success') return 'AI'
+    return 'Pending'
+  }
+
+  // Enhanced CSV Export
   const generateCSV = () => {
-    // CSV Headers
+    // CSV Headers with additional columns
     const headers = [
       'Title',
       'Organization',
-      'Value',
+      'Value (£)',
       'Deadline',
+      'Region',
       'Status',
       'Recommendation',
-      'Alignment Score',
-      'Categories'
+      'Alignment Score (%)',
+      'Categories',
+      'Tender URL',
+      'Win Themes',
+      'Competitors',
+      'Weak Spots',
+      'Rationale',
+      'Analysis Source',
+      'Analysis Date'
     ]
 
     // Convert tenders to CSV rows
     const rows = filteredAndSortedTenders.map(tender => [
       escapeCSV(tender.title),
       escapeCSV(tender.organization),
-      tender.value, // Raw number, no currency symbol
+      tender.value,
       formatDateForCSV(tender.deadline),
+      escapeCSV(tender.region),
       escapeCSV(tender.status),
       escapeCSV(tender.sirona_fit.recommendation),
       tender.sirona_fit.alignment_score,
-      escapeCSV(tender.categories.join(', '))
+      escapeCSV(tender.categories.join('; ')),
+      escapeCSV(tender.url),
+      escapeCSV(tender.sirona_fit.win_themes.join('; ')),
+      escapeCSV(tender.sirona_fit.competitors.join('; ')),
+      escapeCSV(tender.sirona_fit.weak_spots.join('; ')),
+      escapeCSV(tender.sirona_fit.rationale),
+      escapeCSV(getAnalysisSource(tender)),
+      tender.analyzed_at ? formatDateForCSV(tender.analyzed_at) : ''
     ])
 
     // Combine headers and rows
@@ -690,27 +729,569 @@ function App() {
   const handleExportCSV = () => {
     if (filteredAndSortedTenders.length === 0) return
 
-    const csvContent = generateCSV()
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
+    setIsExporting(true)
+    try {
+      const csvContent = generateCSV()
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
 
-    // Generate filename with current date
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
-    const day = String(today.getDate()).padStart(2, '0')
-    const filename = `sirona-tenders-${year}-${month}-${day}.csv`
+      // Generate filename with current date
+      const today = new Date()
+      const year = today.getFullYear()
+      const month = String(today.getMonth() + 1).padStart(2, '0')
+      const day = String(today.getDate()).padStart(2, '0')
+      const filename = `sirona-tenders-${year}-${month}-${day}.csv`
 
-    // Create temporary link and trigger download
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+      // Create temporary link and trigger download
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
 
-    // Clean up the URL object
-    URL.revokeObjectURL(url)
+      // Clean up the URL object
+      URL.revokeObjectURL(url)
+
+      setShowExportDropdown(false)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  // Excel Export with multiple sheets
+  const handleExportExcel = () => {
+    if (filteredAndSortedTenders.length === 0) return
+
+    setIsExporting(true)
+    try {
+      const workbook = XLSX.utils.book_new()
+
+      // Sheet 1: Tender Summary
+      const summaryData = filteredAndSortedTenders.map(tender => ({
+        'Title': tender.title,
+        'Organization': tender.organization,
+        'Value (£)': tender.value,
+        'Deadline': formatDateForCSV(tender.deadline),
+        'Region': tender.region,
+        'Status': tender.status,
+        'Recommendation': tender.sirona_fit.recommendation,
+        'Alignment Score (%)': tender.sirona_fit.alignment_score,
+        'Categories': tender.categories.join('; '),
+        'Analysis Source': getAnalysisSource(tender)
+      }))
+      const summarySheet = XLSX.utils.json_to_sheet(summaryData)
+      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Tender Summary')
+
+      // Sheet 2: Detailed Analysis
+      const detailedData = filteredAndSortedTenders.map(tender => ({
+        'Title': tender.title,
+        'Organization': tender.organization,
+        'Value (£)': tender.value,
+        'Deadline': formatDateForCSV(tender.deadline),
+        'Region': tender.region,
+        'Summary': tender.summary,
+        'Recommendation': tender.sirona_fit.recommendation,
+        'Alignment Score (%)': tender.sirona_fit.alignment_score,
+        'Rationale': tender.sirona_fit.rationale,
+        'Win Theme 1': tender.sirona_fit.win_themes[0] || '',
+        'Win Theme 2': tender.sirona_fit.win_themes[1] || '',
+        'Win Theme 3': tender.sirona_fit.win_themes[2] || '',
+        'Competitor 1': tender.sirona_fit.competitors[0] || '',
+        'Competitor 2': tender.sirona_fit.competitors[1] || '',
+        'Competitor 3': tender.sirona_fit.competitors[2] || '',
+        'Risk 1': tender.sirona_fit.weak_spots[0] || '',
+        'Risk 2': tender.sirona_fit.weak_spots[1] || '',
+        'Tender URL': tender.url,
+        'Analysis Source': getAnalysisSource(tender)
+      }))
+      const detailedSheet = XLSX.utils.json_to_sheet(detailedData)
+      XLSX.utils.book_append_sheet(workbook, detailedSheet, 'Detailed Analysis')
+
+      // Sheet 3: Pipeline Statistics
+      const statsData = [
+        { 'Metric': 'Total Active Opportunities', 'Value': summaryStats.totalActive },
+        { 'Metric': 'Strong Go Recommendations', 'Value': summaryStats.strongGoCount },
+        { 'Metric': 'Strong Go Total Value (£)', 'Value': summaryStats.strongGoValue },
+        { 'Metric': 'Average Alignment Score (%)', 'Value': summaryStats.avgAlignment },
+        { 'Metric': 'Urgent Deadlines (30 days)', 'Value': summaryStats.urgentCount },
+        { 'Metric': 'Total Pipeline Value (£)', 'Value': summaryStats.totalValue },
+        { 'Metric': '', 'Value': '' },
+        { 'Metric': 'By Recommendation', 'Value': '' },
+        { 'Metric': 'Strong Go', 'Value': filteredAndSortedTenders.filter(t => t.sirona_fit.recommendation === 'Strong Go').length },
+        { 'Metric': 'Conditional Go', 'Value': filteredAndSortedTenders.filter(t => t.sirona_fit.recommendation === 'Conditional Go').length },
+        { 'Metric': 'Monitor', 'Value': filteredAndSortedTenders.filter(t => t.sirona_fit.recommendation === 'Monitor').length },
+        { 'Metric': 'No Bid', 'Value': filteredAndSortedTenders.filter(t => t.sirona_fit.recommendation === 'No Bid').length },
+        { 'Metric': '', 'Value': '' },
+        { 'Metric': 'By Category', 'Value': '' },
+        ...allCategories.map(cat => ({
+          'Metric': cat,
+          'Value': filteredAndSortedTenders.filter(t => t.categories.includes(cat)).length
+        }))
+      ]
+      const statsSheet = XLSX.utils.json_to_sheet(statsData)
+      XLSX.utils.book_append_sheet(workbook, statsSheet, 'Pipeline Statistics')
+
+      // Sheet 4: Action Items (Strong Go + Conditional Go, sorted by deadline)
+      const actionTenders = filteredAndSortedTenders
+        .filter(t => t.sirona_fit.recommendation === 'Strong Go' || t.sirona_fit.recommendation === 'Conditional Go')
+        .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
+
+      const actionData = actionTenders.map(tender => {
+        const deadline = new Date(tender.deadline)
+        const now = new Date()
+        const daysRemaining = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24))
+
+        return {
+          'Title': tender.title,
+          'Recommendation': tender.sirona_fit.recommendation,
+          'Deadline': formatDateForCSV(tender.deadline),
+          'Days Remaining': daysRemaining,
+          'Value (£)': tender.value,
+          'Key Strengths': tender.sirona_fit.win_themes.slice(0, 2).join('; '),
+          'Key Risks': tender.sirona_fit.weak_spots.slice(0, 2).join('; '),
+          'Action Notes': ''
+        }
+      })
+      const actionSheet = XLSX.utils.json_to_sheet(actionData)
+      XLSX.utils.book_append_sheet(workbook, actionSheet, 'Action Items')
+
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = URL.createObjectURL(blob)
+
+      // Generate filename
+      const today = new Date()
+      const year = today.getFullYear()
+      const month = String(today.getMonth() + 1).padStart(2, '0')
+      const day = String(today.getDate()).padStart(2, '0')
+      const filename = `sirona-tenders-${year}-${month}-${day}.xlsx`
+
+      // Download
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      setShowExportDropdown(false)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  // Full Analysis Report (HTML)
+  const handleExportReport = () => {
+    if (filteredAndSortedTenders.length === 0) return
+
+    setIsExporting(true)
+    try {
+      const today = new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      })
+
+      const strongGoTenders = filteredAndSortedTenders.filter(t => t.sirona_fit.recommendation === 'Strong Go')
+      const conditionalGoTenders = filteredAndSortedTenders.filter(t => t.sirona_fit.recommendation === 'Conditional Go')
+      const otherTenders = filteredAndSortedTenders.filter(t =>
+        t.sirona_fit.recommendation !== 'Strong Go' && t.sirona_fit.recommendation !== 'Conditional Go'
+      )
+
+      const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Sirona Tender Intelligence Report</title>
+  <style>
+    @page { size: A4; margin: 2cm; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1F2937; }
+    .cover { text-align: center; padding: 4rem 2rem; page-break-after: always; }
+    .cover h1 { color: #7C3AED; font-size: 2.5rem; margin-bottom: 1rem; }
+    .cover .subtitle { font-size: 1.25rem; color: #6B7280; margin-bottom: 2rem; }
+    .cover .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 3rem; }
+    .cover .stat-card { background: #F3F4F6; padding: 1.5rem; border-radius: 8px; }
+    .cover .stat-value { font-size: 2rem; font-weight: bold; color: #7C3AED; }
+    .cover .stat-label { color: #6B7280; font-size: 0.875rem; margin-top: 0.5rem; }
+    .section { page-break-inside: avoid; margin-bottom: 2rem; }
+    .section-title { color: #7C3AED; font-size: 1.75rem; border-bottom: 3px solid #7C3AED; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+    .tender-card { border: 2px solid #E5E7EB; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; page-break-inside: avoid; }
+    .tender-card.strong-go { border-color: #10B981; background: #ECFDF5; }
+    .tender-card.conditional-go { border-color: #F59E0B; background: #FFFBEB; }
+    .tender-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem; }
+    .tender-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1rem; padding: 1rem; background: white; border-radius: 4px; }
+    .meta-item { font-size: 0.875rem; }
+    .meta-label { color: #6B7280; font-weight: 600; }
+    .meta-value { color: #1F2937; margin-top: 0.25rem; }
+    .recommendation-badge { display: inline-block; padding: 0.5rem 1rem; border-radius: 6px; font-weight: bold; color: white; }
+    .badge-strong-go { background: #10B981; }
+    .badge-conditional-go { background: #F59E0B; }
+    .badge-monitor { background: #6B7280; }
+    .badge-no-bid { background: #EF4444; }
+    .alignment-score { font-size: 2rem; font-weight: bold; color: #7C3AED; }
+    h3 { color: #374151; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+    ul { margin: 0.5rem 0; padding-left: 1.5rem; }
+    li { margin: 0.5rem 0; }
+    .table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    .table th { background: #7C3AED; color: white; padding: 0.75rem; text-align: left; }
+    .table td { border: 1px solid #E5E7EB; padding: 0.75rem; }
+    .footer { text-align: center; color: #6B7280; font-size: 0.875rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #E5E7EB; }
+    @media print { .no-print { display: none; } }
+  </style>
+</head>
+<body>
+  <!-- Cover Page -->
+  <div class="cover">
+    <h1>Sirona Tender Intelligence Report</h1>
+    <div class="subtitle">Comprehensive Analysis of Tender Opportunities</div>
+    <div class="subtitle">${today}</div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-value">${summaryStats.totalActive}</div>
+        <div class="stat-label">Active Opportunities</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${summaryStats.strongGoCount}</div>
+        <div class="stat-label">Strong Go</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">£${(summaryStats.totalValue / 1000000).toFixed(1)}M</div>
+        <div class="stat-label">Pipeline Value</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Executive Summary -->
+  <div class="section">
+    <h2 class="section-title">Executive Summary</h2>
+    <p>This report provides a comprehensive analysis of ${filteredAndSortedTenders.length} tender opportunities for Sirona Care & Health CIC as of ${today}.</p>
+
+    <h3>Key Findings</h3>
+    <ul>
+      <li><strong>${summaryStats.strongGoCount} Strong Go recommendations</strong> with a combined value of £${(summaryStats.strongGoValue / 1000000).toFixed(2)}M</li>
+      <li><strong>Average alignment score of ${summaryStats.avgAlignment}%</strong> across all opportunities</li>
+      <li><strong>${summaryStats.urgentCount} urgent deadlines</strong> within the next 30 days requiring immediate attention</li>
+    </ul>
+
+    ${strongGoTenders.length > 0 ? `
+    <h3>Top Priority Opportunities</h3>
+    <ol>
+      ${strongGoTenders.slice(0, 3).map(tender => `
+        <li><strong>${tender.title}</strong> - ${tender.organization} (£${(tender.value / 1000000).toFixed(2)}M, ${tender.sirona_fit.alignment_score}% alignment)</li>
+      `).join('')}
+    </ol>
+    ` : ''}
+  </div>
+
+  <!-- Strong Go Tenders -->
+  ${strongGoTenders.length > 0 ? `
+  <div class="section" style="page-break-before: always;">
+    <h2 class="section-title">Priority Opportunities: Strong Go</h2>
+    ${strongGoTenders.map(tender => `
+      <div class="tender-card strong-go">
+        <div class="tender-title">${tender.title}</div>
+        <div class="tender-meta">
+          <div class="meta-item">
+            <div class="meta-label">Organization</div>
+            <div class="meta-value">${tender.organization}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Value</div>
+            <div class="meta-value">£${(tender.value / 1000000).toFixed(2)}M</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Deadline</div>
+            <div class="meta-value">${new Date(tender.deadline).toLocaleDateString('en-GB')}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Alignment</div>
+            <div class="meta-value alignment-score">${tender.sirona_fit.alignment_score}%</div>
+          </div>
+        </div>
+
+        <p><strong>Summary:</strong> ${tender.summary}</p>
+
+        <h3>Strategic Fit Rationale</h3>
+        <p>${tender.sirona_fit.rationale}</p>
+
+        <h3>Win Themes</h3>
+        <ul>
+          ${tender.sirona_fit.win_themes.map(theme => `<li>${theme}</li>`).join('')}
+        </ul>
+
+        <h3>Competitive Landscape</h3>
+        <p><strong>Likely Competitors:</strong> ${tender.sirona_fit.competitors.join(', ')}</p>
+
+        <h3>Risk Factors</h3>
+        <ul>
+          ${tender.sirona_fit.weak_spots.map(risk => `<li>${risk}</li>`).join('')}
+        </ul>
+      </div>
+    `).join('')}
+  </div>
+  ` : ''}
+
+  <!-- Conditional Go Tenders -->
+  ${conditionalGoTenders.length > 0 ? `
+  <div class="section" style="page-break-before: always;">
+    <h2 class="section-title">Opportunities Requiring Further Review: Conditional Go</h2>
+    ${conditionalGoTenders.map(tender => `
+      <div class="tender-card conditional-go">
+        <div class="tender-title">${tender.title}</div>
+        <div class="tender-meta">
+          <div class="meta-item">
+            <div class="meta-label">Organization</div>
+            <div class="meta-value">${tender.organization}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Value</div>
+            <div class="meta-value">£${(tender.value / 1000000).toFixed(2)}M</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Deadline</div>
+            <div class="meta-value">${new Date(tender.deadline).toLocaleDateString('en-GB')}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Alignment</div>
+            <div class="meta-value alignment-score">${tender.sirona_fit.alignment_score}%</div>
+          </div>
+        </div>
+
+        <p><strong>Summary:</strong> ${tender.summary}</p>
+        <p><strong>Rationale:</strong> ${tender.sirona_fit.rationale}</p>
+
+        <p><strong>Key Strengths:</strong> ${tender.sirona_fit.win_themes.slice(0, 2).join('; ')}</p>
+        <p><strong>Key Concerns:</strong> ${tender.sirona_fit.weak_spots.slice(0, 2).join('; ')}</p>
+      </div>
+    `).join('')}
+  </div>
+  ` : ''}
+
+  <!-- Appendix: Other Tenders -->
+  ${otherTenders.length > 0 ? `
+  <div class="section" style="page-break-before: always;">
+    <h2 class="section-title">Appendix: Other Opportunities</h2>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Organization</th>
+          <th>Value</th>
+          <th>Deadline</th>
+          <th>Recommendation</th>
+          <th>Alignment</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${otherTenders.map(tender => `
+          <tr>
+            <td>${tender.title}</td>
+            <td>${tender.organization}</td>
+            <td>£${(tender.value / 1000000).toFixed(2)}M</td>
+            <td>${new Date(tender.deadline).toLocaleDateString('en-GB')}</td>
+            <td><span class="recommendation-badge badge-${tender.sirona_fit.recommendation.toLowerCase().replace(' ', '-')}">${tender.sirona_fit.recommendation}</span></td>
+            <td>${tender.sirona_fit.alignment_score}%</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+  ` : ''}
+
+  <div class="footer">
+    <p>Generated by Sirona Tender Intelligence Dashboard</p>
+    <p>Report Date: ${today} | Data Source: ${dataSource === 'live' ? 'Live Data' : 'Sample Data'}</p>
+    <p style="margin-top: 1rem; font-size: 0.75rem;">This report is confidential and intended solely for internal use by Sirona Care & Health CIC.</p>
+  </div>
+</body>
+</html>
+      `.trim()
+
+      // Open in new window for print/save as PDF
+      const printWindow = window.open('', '_blank')
+      printWindow.document.write(html)
+      printWindow.document.close()
+
+      setShowExportDropdown(false)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  // Summary Dashboard Export
+  const handleExportDashboard = () => {
+    if (filteredAndSortedTenders.length === 0) return
+
+    setIsExporting(true)
+    try {
+      const today = new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      })
+
+      const strongGoTenders = filteredAndSortedTenders
+        .filter(t => t.sirona_fit.recommendation === 'Strong Go')
+        .sort((a, b) => b.sirona_fit.alignment_score - a.sirona_fit.alignment_score)
+        .slice(0, 5)
+
+      const urgentTenders = filteredAndSortedTenders
+        .filter(t => {
+          const deadline = new Date(t.deadline)
+          const now = new Date()
+          const daysUntil = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24))
+          return daysUntil >= 0 && daysUntil <= 30
+        })
+        .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
+        .slice(0, 5)
+
+      const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Sirona Tender Dashboard Summary</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 2rem; background: #F9FAFB; color: #1F2937; }
+    .dashboard { max-width: 1200px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 2rem; }
+    .header h1 { color: #7C3AED; margin: 0; font-size: 2rem; }
+    .header .subtitle { color: #6B7280; margin-top: 0.5rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+    .stat-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .stat-value { font-size: 1.75rem; font-weight: bold; color: #7C3AED; }
+    .stat-label { color: #6B7280; font-size: 0.875rem; margin-top: 0.5rem; }
+    .section { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
+    .section-title { font-size: 1.25rem; font-weight: bold; color: #374151; margin: 0 0 1rem 0; border-bottom: 2px solid #E5E7EB; padding-bottom: 0.5rem; }
+    .tender-list { list-style: none; padding: 0; margin: 0; }
+    .tender-item { display: grid; grid-template-columns: 1fr auto auto auto; gap: 1rem; align-items: center; padding: 1rem; border-bottom: 1px solid #E5E7EB; }
+    .tender-item:last-child { border-bottom: none; }
+    .tender-name { font-weight: 600; color: #1F2937; }
+    .tender-org { color: #6B7280; font-size: 0.875rem; margin-top: 0.25rem; }
+    .badge { padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; white-space: nowrap; }
+    .badge-value { background: #DBEAFE; color: #1E40AF; }
+    .badge-alignment { background: #F3E8FF; color: #7C3AED; }
+    .badge-deadline { background: #FEF3C7; color: #92400E; }
+    .category-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+    .category-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #F9FAFB; border-radius: 6px; }
+    .category-name { color: #374151; font-weight: 500; }
+    .category-count { color: #7C3AED; font-weight: bold; }
+    .footer { text-align: center; color: #6B7280; font-size: 0.875rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #E5E7EB; }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <div class="header">
+      <h1>Sirona Tender Intelligence Dashboard</h1>
+      <div class="subtitle">Snapshot Summary - ${today}</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-value">${summaryStats.totalActive}</div>
+        <div class="stat-label">Active Opportunities</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value">${summaryStats.strongGoCount}</div>
+        <div class="stat-label">Strong Go</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-value">${summaryStats.avgAlignment}%</div>
+        <div class="stat-label">Avg Alignment</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏰</div>
+        <div class="stat-value">${summaryStats.urgentCount}</div>
+        <div class="stat-label">Urgent (30 days)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💷</div>
+        <div class="stat-value">£${(summaryStats.totalValue / 1000000).toFixed(1)}M</div>
+        <div class="stat-label">Pipeline Value</div>
+      </div>
+    </div>
+
+    ${strongGoTenders.length > 0 ? `
+    <div class="section">
+      <h2 class="section-title">Top Priority Opportunities</h2>
+      <ul class="tender-list">
+        ${strongGoTenders.map(tender => `
+          <li class="tender-item">
+            <div>
+              <div class="tender-name">${tender.title}</div>
+              <div class="tender-org">${tender.organization}</div>
+            </div>
+            <div class="badge badge-value">£${(tender.value / 1000000).toFixed(2)}M</div>
+            <div class="badge badge-alignment">${tender.sirona_fit.alignment_score}%</div>
+            <div class="badge badge-deadline">${new Date(tender.deadline).toLocaleDateString('en-GB')}</div>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+    ` : ''}
+
+    ${urgentTenders.length > 0 ? `
+    <div class="section">
+      <h2 class="section-title">Urgent Deadlines (Next 30 Days)</h2>
+      <ul class="tender-list">
+        ${urgentTenders.map(tender => {
+          const deadline = new Date(tender.deadline)
+          const now = new Date()
+          const daysUntil = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24))
+          return `
+          <li class="tender-item">
+            <div>
+              <div class="tender-name">${tender.title}</div>
+              <div class="tender-org">${tender.sirona_fit.recommendation}</div>
+            </div>
+            <div class="badge badge-deadline">${daysUntil} days</div>
+            <div class="badge badge-alignment">${tender.sirona_fit.alignment_score}%</div>
+            <div class="badge badge-value">£${(tender.value / 1000000).toFixed(2)}M</div>
+          </li>
+        `}).join('')}
+      </ul>
+    </div>
+    ` : ''}
+
+    <div class="section">
+      <h2 class="section-title">Opportunities by Category</h2>
+      <div class="category-grid">
+        ${allCategories.map(cat => `
+          <div class="category-item">
+            <span class="category-name">${cat}</span>
+            <span class="category-count">${filteredAndSortedTenders.filter(t => t.categories.includes(cat)).length}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Generated by Sirona Tender Intelligence Dashboard</p>
+      <p>Data Source: ${dataSource === 'live' ? 'Live Data' : 'Sample Data'} | ${today}</p>
+    </div>
+  </div>
+</body>
+</html>
+      `.trim()
+
+      // Open in new window
+      const dashboardWindow = window.open('', '_blank')
+      dashboardWindow.document.write(html)
+      dashboardWindow.document.close()
+
+      setShowExportDropdown(false)
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   // Loading screen
@@ -1290,17 +1871,72 @@ function App() {
             {dataSource === 'live' && <span className="data-source-badge">Live Data</span>}
           </div>
 
-          <button
-            className="export-btn"
-            onClick={handleExportCSV}
-            disabled={filteredAndSortedTenders.length === 0}
-            aria-label={`Export ${filteredAndSortedTenders.length} tenders to CSV`}
-          >
-            <span className="export-icon">📥</span>
-            <span className="export-text">
-              Export {filteredAndSortedTenders.length === currentTenders.length ? 'All' : ''} ({filteredAndSortedTenders.length} {filteredAndSortedTenders.length === 1 ? 'tender' : 'tenders'})
-            </span>
-          </button>
+          <div className="export-dropdown-container">
+            <button
+              className="export-btn"
+              onClick={() => setShowExportDropdown(!showExportDropdown)}
+              disabled={filteredAndSortedTenders.length === 0 || isExporting}
+              aria-label="Export options"
+            >
+              <span className="export-icon">📥</span>
+              <span className="export-text">
+                {isExporting ? 'Exporting...' : `Export (${filteredAndSortedTenders.length})`}
+              </span>
+              <span className="dropdown-arrow">▼</span>
+            </button>
+
+            {showExportDropdown && filteredAndSortedTenders.length > 0 && (
+              <div className="export-dropdown-menu">
+                <button
+                  className="export-option"
+                  onClick={handleExportCSV}
+                  disabled={isExporting}
+                >
+                  <span className="option-icon">📊</span>
+                  <div className="option-content">
+                    <div className="option-title">Export as CSV</div>
+                    <div className="option-description">Spreadsheet with all fields</div>
+                  </div>
+                </button>
+
+                <button
+                  className="export-option"
+                  onClick={handleExportExcel}
+                  disabled={isExporting}
+                >
+                  <span className="option-icon">📈</span>
+                  <div className="option-content">
+                    <div className="option-title">Export as Excel</div>
+                    <div className="option-description">Multi-sheet workbook with analysis</div>
+                  </div>
+                </button>
+
+                <button
+                  className="export-option"
+                  onClick={handleExportReport}
+                  disabled={isExporting}
+                >
+                  <span className="option-icon">📄</span>
+                  <div className="option-content">
+                    <div className="option-title">Full Analysis Report</div>
+                    <div className="option-description">Detailed PDF-ready document</div>
+                  </div>
+                </button>
+
+                <button
+                  className="export-option"
+                  onClick={handleExportDashboard}
+                  disabled={isExporting}
+                >
+                  <span className="option-icon">📋</span>
+                  <div className="option-content">
+                    <div className="option-title">Summary Dashboard</div>
+                    <div className="option-description">One-page snapshot overview</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         </div>
       </div>
