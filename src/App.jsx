@@ -1382,11 +1382,11 @@ function App() {
                   <h4>About Data Sources</h4>
                   <ul>
                     <li><strong>Sample Data:</strong> Realistic preview with 10 NHS tenders for demonstration</li>
-                    <li><strong>Live Data:</strong> Fetched directly from data.gov.uk's daily OCDS CSV files published by Contracts Finder</li>
-                    <li><strong>Data Freshness:</strong> CSV files are updated daily and cached for 15 minutes</li>
-                    <li><strong>Coverage:</strong> Last 30 days of published tenders from UK government procurement</li>
+                    <li><strong>Live Data:</strong> Fetched daily via GitHub Actions from data.gov.uk's OCDS CSV files</li>
+                    <li><strong>Updates:</strong> Data updates automatically each morning at 7am UTC</li>
+                    <li><strong>Coverage:</strong> Last 30 days of published tenders from UK Contracts Finder</li>
                     <li><strong>AI Analysis:</strong> Use the "Analyze This Tender" feature for Claude-powered strategic fit assessment</li>
-                    <li><strong>Note:</strong> No CORS issues - direct S3 bucket access from browser. Data may take a few seconds to download and parse.</li>
+                    <li><strong>Note:</strong> No CORS issues - data is fetched server-side and committed to repository. Instant loading from same origin.</li>
                   </ul>
                 </div>
               )}

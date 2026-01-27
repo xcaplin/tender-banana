@@ -1,0 +1,175 @@
+name: Fetch Daily Tender Data
+
+on:
+  schedule:
+    # Run daily at 7am UTC (after data.gov.uk updates)
+    - cron: '0 7 * * *'
+  workflow_dispatch:  # Allow manual triggering
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/fetch-tenders.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-tenders:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch and process tender data
+        run: |
+          # Create scripts directory if it doesn't exist
+          mkdir -p scripts
+
+          # Create the fetch script
+          cat > scripts/fetch-ocds-data.js << 'SCRIPT_EOF'
+          const https = require('https');
+          const fs = require('fs');
+
+          const S3_BASE = 'https://cdp-sirsi-production-cfs-471112843276.s3.eu-west-2.amazonaws.com/Harvester-new';
+
+          // Fetch a URL and return text content
+          function fetchURL(url) {
+            return new Promise((resolve, reject) => {
+              https.get(url, (res) => {
+                if (res.statusCode !== 200) {
+                  resolve(null);
+                  return;
+                }
+
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => resolve(data));
+              }).on('error', reject);
+            });
+          }
+
+          // Parse CSV line
+          function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+              const char = line[i];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            result.push(current.trim());
+            return result.map(v => v.replace(/^"|"$/g, '').trim());
+          }
+
+          // Parse CSV to tenders
+          function parseCSV(csvText) {
+            const lines = csvText.split('\n').filter(l => l.trim());
+            if (lines.length < 2) return [];
+
+            const headers = parseCSVLine(lines[0]);
+            const tenders = [];
+
+            for (let i = 1; i < lines.length; i++) {
+              try {
+                const values = parseCSVLine(lines[i]);
+                const row = {};
+                headers.forEach((h, idx) => row[h] = values[idx] || '');
+
+                const title = row['releases/0/tender/title'] || row['tender/title'] || '';
+                if (!title) continue;
+
+                const tender = {
+                  id: row['ocid'] || `tender-${i}`,
+                  title: title,
+                  organization: row['releases/0/buyer/name'] || row['buyer/name'] || 'Unknown',
+                  value: parseFloat(row['releases/0/tender/value/amount'] || row['tender/value/amount'] || 0),
+                  deadline: row['releases/0/tender/tenderPeriod/endDate'] || row['tender/tenderPeriod/endDate'] || '',
+                  summary: (row['releases/0/tender/description'] || row['tender/description'] || '').substring(0, 200),
+                  detailedDescription: row['releases/0/tender/description'] || row['tender/description'] || '',
+                  region: row['releases/0/buyer/address/region'] || row['buyer/address/region'] || '',
+                  url: `https://www.contractsfinder.service.gov.uk/notice/${row['ocid']}`,
+                  status: 'new',
+                  categories: [],
+                  sirona_fit: null
+                };
+
+                tenders.push(tender);
+              } catch (e) {
+                // Skip invalid rows
+              }
+            }
+
+            return tenders;
+          }
+
+          // Main execution
+          async function main() {
+            console.log('Fetching tender data from data.gov.uk...');
+
+            const allTenders = [];
+            const today = new Date();
+
+            // Fetch last 30 days
+            for (let i = 0; i < 30; i++) {
+              const date = new Date(today);
+              date.setDate(date.getDate() - i);
+
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const day = String(date.getDate()).padStart(2, '0');
+
+              const url = `${S3_BASE}/${year}-${month}/Contracts%20Finder%20OCDS%20${year}-${month}-${day}.csv`;
+
+              console.log(`Fetching ${year}-${month}-${day}...`);
+              const csvText = await fetchURL(url);
+
+              if (csvText) {
+                const tenders = parseCSV(csvText);
+                allTenders.push(...tenders);
+                console.log(`  Found ${tenders.length} tenders`);
+              }
+
+              // Small delay to be nice to the server
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            console.log(`Total tenders fetched: ${allTenders.length}`);
+
+            // Write to file
+            const output = {
+              generated: new Date().toISOString(),
+              count: allTenders.length,
+              tenders: allTenders
+            };
+
+            fs.writeFileSync('src/data/live-tenders.json', JSON.stringify(output, null, 2));
+            console.log('Written to src/data/live-tenders.json');
+          }
+
+          main().catch(console.error);
+          SCRIPT_EOF
+
+          # Run the script
+          node scripts/fetch-ocds-data.js
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add src/data/live-tenders.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update tender data [automated]" && git push)
