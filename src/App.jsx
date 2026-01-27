@@ -2,6 +2,14 @@ import { useState, useMemo, useEffect, Component } from 'react'
 import './App.css'
 import tenders from './data/tenders.js'
 import { fetchAndProcessTenders } from './services/tenderFetcher.js'
+import {
+  analyzeTenderWithClaude,
+  analyzeTendersBatch,
+  estimateAnalysisCost,
+  setApiKey,
+  getApiKey,
+  checkApiStatus
+} from './services/claudeAnalyzer.js'
 
 // Error Boundary Component
 class ErrorBoundary extends Component {
@@ -70,6 +78,22 @@ function App() {
   const [isSearchParamsCollapsed, setIsSearchParamsCollapsed] = useState(false)
   const [showInfoTooltip, setShowInfoTooltip] = useState(false)
 
+  // AI Analysis state
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [apiKeyStatus, setApiKeyStatus] = useState(null)
+  const [isTestingConnection, setIsTestingConnection] = useState(false)
+  const [autoAnalyze, setAutoAnalyze] = useState(() => {
+    const saved = localStorage.getItem('autoAnalyze')
+    return saved ? JSON.parse(saved) : false
+  })
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analysisProgress, setAnalysisProgress] = useState({ current: 0, total: 0, currentTender: null })
+  const [sessionAnalysisCount, setSessionAnalysisCount] = useState(0)
+  const [sessionAnalysisCost, setSessionAnalysisCost] = useState(0)
+  const [analyzedTenders, setAnalyzedTenders] = useState(new Set())
+  const [tenderAnalysisStatus, setTenderAnalysisStatus] = useState({}) // tenderId -> 'analyzing' | 'success' | 'error'
+
   // Search parameters for live data
   const [searchParams, setSearchParams] = useState(() => {
     // Load from localStorage or use defaults
@@ -111,6 +135,33 @@ function App() {
   useEffect(() => {
     localStorage.setItem('tenderSearchParams', JSON.stringify(searchParams))
   }, [searchParams])
+
+  // Check API key status on mount
+  useEffect(() => {
+    const status = checkApiStatus()
+    setApiKeyStatus(status)
+  }, [])
+
+  // Save auto-analyze preference when it changes
+  useEffect(() => {
+    localStorage.setItem('autoAnalyze', JSON.stringify(autoAnalyze))
+  }, [autoAnalyze])
+
+  // Auto-analyze new tenders when enabled
+  useEffect(() => {
+    if (autoAnalyze && apiKeyStatus?.isReady && dataSource === 'live' && liveTenders.length > 0 && !isAnalyzing) {
+      const unanalyzed = liveTenders.filter(t => !t.ai_analyzed && !analyzedTenders.has(t.id) && tenderAnalysisStatus[t.id] !== 'analyzing')
+
+      if (unanalyzed.length > 0) {
+        console.log(`Auto-analyzing ${unanalyzed.length} new tenders...`)
+        // Small delay to avoid immediate re-trigger
+        const timer = setTimeout(() => {
+          handleAnalyzeBatch(unanalyzed)
+        }, 1000)
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [liveTenders, autoAnalyze, apiKeyStatus, dataSource, isAnalyzing])
 
   // Get selected tender object
   const selectedTender = selectedTenderId
@@ -448,6 +499,141 @@ function App() {
     })
   }
 
+  // AI Analysis functions
+  const handleSaveApiKey = () => {
+    try {
+      if (!apiKeyInput.trim()) {
+        alert('Please enter an API key')
+        return
+      }
+      setApiKey(apiKeyInput.trim())
+      const status = checkApiStatus()
+      setApiKeyStatus(status)
+      setApiKeyInput('')
+      alert('API key saved successfully!')
+    } catch (error) {
+      alert(`Error saving API key: ${error.message}`)
+    }
+  }
+
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true)
+    try {
+      // Create a minimal test tender
+      const testTender = {
+        title: 'Test Tender',
+        organization: 'Test Org',
+        value: 100000,
+        deadline: new Date().toISOString(),
+        summary: 'This is a test tender for API connection validation.',
+        detailedDescription: ''
+      }
+
+      await analyzeTenderWithClaude(testTender)
+      alert('✓ Connection successful! Claude API is ready to use.')
+    } catch (error) {
+      alert(`✗ Connection failed: ${error.message}`)
+    } finally {
+      setIsTestingConnection(false)
+    }
+  }
+
+  const handleAnalyzeSingleTender = async (tender) => {
+    if (!apiKeyStatus?.isReady) {
+      alert('Please configure your Anthropic API key in Settings first.')
+      setShowSettingsModal(true)
+      return
+    }
+
+    setTenderAnalysisStatus(prev => ({ ...prev, [tender.id]: 'analyzing' }))
+
+    try {
+      const enrichedTender = await analyzeTenderWithClaude(tender)
+
+      // Update the tender in the appropriate list
+      if (dataSource === 'live') {
+        setLiveTenders(prev => prev.map(t => t.id === tender.id ? enrichedTender : t))
+      }
+
+      setTenderAnalysisStatus(prev => ({ ...prev, [tender.id]: 'success' }))
+      setAnalyzedTenders(prev => new Set([...prev, tender.id]))
+      setSessionAnalysisCount(prev => prev + 1)
+
+      const cost = estimateAnalysisCost(1)
+      setSessionAnalysisCost(prev => prev + cost.totalCostGBP)
+
+    } catch (error) {
+      console.error('Analysis error:', error)
+      setTenderAnalysisStatus(prev => ({ ...prev, [tender.id]: 'error' }))
+      alert(`Failed to analyze tender: ${error.message}`)
+    }
+  }
+
+  const handleAnalyzeBatch = async (tendersToAnalyze) => {
+    if (!apiKeyStatus?.isReady) {
+      alert('Please configure your Anthropic API key in Settings first.')
+      setShowSettingsModal(true)
+      return
+    }
+
+    // Show cost estimate
+    const cost = estimateAnalysisCost(tendersToAnalyze.length)
+    const confirmed = window.confirm(
+      `Analyze ${tendersToAnalyze.length} tenders?\n\n` +
+      `Estimated cost: ${cost.formattedCostGBP} (${cost.formattedCostPerTenderGBP} per tender)\n\n` +
+      `This will use the Claude API to generate strategic fit assessments.`
+    )
+
+    if (!confirmed) return
+
+    setIsAnalyzing(true)
+    setAnalysisProgress({ current: 0, total: tendersToAnalyze.length, currentTender: null })
+
+    // Mark all as analyzing
+    const statusUpdates = {}
+    tendersToAnalyze.forEach(t => { statusUpdates[t.id] = 'analyzing' })
+    setTenderAnalysisStatus(prev => ({ ...prev, ...statusUpdates }))
+
+    try {
+      const enrichedTenders = await analyzeTendersBatch(
+        tendersToAnalyze,
+        (current, total, tender) => {
+          setAnalysisProgress({ current, total, currentTender: tender.title })
+        }
+      )
+
+      // Update the tenders in the appropriate list
+      if (dataSource === 'live') {
+        setLiveTenders(prev => {
+          const enrichedMap = new Map(enrichedTenders.map(t => [t.id, t]))
+          return prev.map(t => enrichedMap.get(t.id) || t)
+        })
+      }
+
+      // Update status for all analyzed tenders
+      const successUpdates = {}
+      enrichedTenders.forEach(t => {
+        successUpdates[t.id] = t.ai_analyzed ? 'success' : 'error'
+        if (t.ai_analyzed) {
+          setAnalyzedTenders(prev => new Set([...prev, t.id]))
+        }
+      })
+      setTenderAnalysisStatus(prev => ({ ...prev, ...successUpdates }))
+
+      const successCount = enrichedTenders.filter(t => t.ai_analyzed).length
+      setSessionAnalysisCount(prev => prev + successCount)
+      setSessionAnalysisCost(prev => prev + cost.totalCostGBP)
+
+      alert(`✓ Analysis complete!\n\nSuccessfully analyzed: ${successCount}/${tendersToAnalyze.length} tenders`)
+    } catch (error) {
+      console.error('Batch analysis error:', error)
+      alert(`Analysis failed: ${error.message}`)
+    } finally {
+      setIsAnalyzing(false)
+      setAnalysisProgress({ current: 0, total: 0, currentTender: null })
+    }
+  }
+
   // CSV Export functionality
   const escapeCSV = (value) => {
     if (value === null || value === undefined) return ''
@@ -576,6 +762,15 @@ function App() {
           <h1>Sirona Tender Intelligence Dashboard</h1>
           <div className="header-controls">
             <button
+              className="settings-btn"
+              onClick={() => setShowSettingsModal(true)}
+              aria-label="Open settings"
+              title="Settings"
+            >
+              ⚙️
+            </button>
+
+            <button
               className={`data-source-toggle ${dataSource === 'live' ? 'live-active' : ''}`}
               onClick={handleDataSourceToggle}
               aria-label={`Currently using ${dataSource} data. Click to toggle.`}
@@ -633,6 +828,95 @@ function App() {
           </div>
         )}
       </header>
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <>
+          <div
+            className="detail-overlay"
+            onClick={() => setShowSettingsModal(false)}
+            aria-hidden="true"
+          />
+          <div
+            className="settings-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-title"
+          >
+            <button
+              className="detail-close"
+              onClick={() => setShowSettingsModal(false)}
+              aria-label="Close settings"
+            >
+              ✕
+            </button>
+
+            <div className="settings-content">
+              <h2 id="settings-title">Settings</h2>
+
+              <div className="settings-section">
+                <h3>Anthropic API Configuration</h3>
+                <p className="settings-help-text">
+                  Required for AI-powered tender analysis. Your API key is stored locally and never sent to our servers.
+                </p>
+
+                <div className="api-key-status">
+                  <span className="status-label">Status:</span>
+                  {apiKeyStatus?.isReady ? (
+                    <span className="status-connected">
+                      ✓ Connected ({apiKeyStatus.keyPreview})
+                    </span>
+                  ) : (
+                    <span className="status-not-configured">
+                      ✗ Not configured
+                    </span>
+                  )}
+                </div>
+
+                <div className="api-key-input-group">
+                  <label htmlFor="api-key-input">Anthropic API Key</label>
+                  <input
+                    id="api-key-input"
+                    type="password"
+                    value={apiKeyInput}
+                    onChange={(e) => setApiKeyInput(e.target.value)}
+                    placeholder="sk-ant-..."
+                    className="api-key-input"
+                  />
+                </div>
+
+                <div className="settings-actions">
+                  <button
+                    className="save-api-key-btn"
+                    onClick={handleSaveApiKey}
+                    disabled={!apiKeyInput.trim()}
+                  >
+                    Save API Key
+                  </button>
+
+                  <button
+                    className="test-connection-btn"
+                    onClick={handleTestConnection}
+                    disabled={!apiKeyStatus?.isReady || isTestingConnection}
+                  >
+                    {isTestingConnection ? 'Testing...' : 'Test Connection'}
+                  </button>
+                </div>
+
+                <p className="settings-help-link">
+                  Get your API key from: <a
+                    href="https://console.anthropic.com/settings/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Anthropic Console
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Search Parameters Panel - Only visible in live data mode or when no live data */}
       {(dataSource === 'live' || liveTenders.length === 0) && (
@@ -759,6 +1043,87 @@ function App() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* AI Analysis Panel - Only visible when API is configured */}
+      {apiKeyStatus?.isReady && dataSource === 'live' && liveTenders.length > 0 && (
+        <div className="ai-analysis-section">
+          <h3 className="ai-section-title">AI Analysis</h3>
+
+          <div className="ai-controls">
+            <label className="auto-analyze-checkbox">
+              <input
+                type="checkbox"
+                checked={autoAnalyze}
+                onChange={(e) => setAutoAnalyze(e.target.checked)}
+              />
+              <span>Automatically analyze new tenders with Claude</span>
+            </label>
+
+            <div className="analysis-buttons">
+              <button
+                className="analyze-btn analyze-unanalyzed-btn"
+                onClick={() => {
+                  const unanalyzed = liveTenders.filter(t => !t.ai_analyzed && !analyzedTenders.has(t.id))
+                  if (unanalyzed.length === 0) {
+                    alert('All tenders have already been analyzed!')
+                    return
+                  }
+                  handleAnalyzeBatch(unanalyzed)
+                }}
+                disabled={isAnalyzing || isFetching}
+              >
+                Analyze Unanalyzed Tenders ({liveTenders.filter(t => !t.ai_analyzed && !analyzedTenders.has(t.id)).length})
+              </button>
+
+              <button
+                className="analyze-btn analyze-all-btn"
+                onClick={() => handleAnalyzeBatch(liveTenders)}
+                disabled={isAnalyzing || isFetching}
+              >
+                Analyze All Tenders ({liveTenders.length})
+              </button>
+            </div>
+          </div>
+
+          {/* Cost Tracking */}
+          {sessionAnalysisCount > 0 && (
+            <div className="cost-tracking">
+              <span className="cost-label">Session Analysis:</span>
+              <span className="cost-value">
+                {sessionAnalysisCount} {sessionAnalysisCount === 1 ? 'tender' : 'tenders'}
+                {' '}(est. £{sessionAnalysisCost.toFixed(4)})
+              </span>
+              {sessionAnalysisCost > 1 && (
+                <span className="cost-warning">⚠️ Approaching £1</span>
+              )}
+            </div>
+          )}
+
+          {/* Analysis Progress */}
+          {isAnalyzing && (
+            <div className="analysis-progress">
+              <div className="progress-header">
+                <span className="progress-text">
+                  Analyzing {analysisProgress.current} of {analysisProgress.total} tenders...
+                </span>
+              </div>
+              <div className="progress-bar-container">
+                <div
+                  className="progress-bar-fill"
+                  style={{
+                    width: `${(analysisProgress.current / analysisProgress.total) * 100}%`
+                  }}
+                />
+              </div>
+              {analysisProgress.currentTender && (
+                <div className="current-tender-analyzing">
+                  Current: {analysisProgress.currentTender}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -979,8 +1344,29 @@ function App() {
                 >
                   <div className="tender-main">
                     <div className="tender-header">
-                      <h3 className="tender-title">{tender.title}</h3>
+                      <div className="tender-title-with-indicator">
+                        {apiKeyStatus?.isReady && dataSource === 'live' && (
+                          <span className="ai-analysis-indicator" title={
+                            tenderAnalysisStatus[tender.id] === 'analyzing' ? 'Analyzing...' :
+                            tenderAnalysisStatus[tender.id] === 'success' || tender.ai_analyzed ? 'AI Analyzed' :
+                            tenderAnalysisStatus[tender.id] === 'error' ? 'Analysis Failed' :
+                            'Not Analyzed'
+                          }>
+                            {tenderAnalysisStatus[tender.id] === 'analyzing' ? '⏳' :
+                             tenderAnalysisStatus[tender.id] === 'success' || tender.ai_analyzed ? '✓' :
+                             tenderAnalysisStatus[tender.id] === 'error' ? '✗' :
+                             '○'}
+                          </span>
+                        )}
+                        <h3 className="tender-title">{tender.title}</h3>
+                      </div>
                       <div className="tender-badges">
+                        {dataSource === 'sample' && (
+                          <span className="data-source-badge sample-badge">Sample Analysis</span>
+                        )}
+                        {dataSource === 'live' && (tender.ai_analyzed || tenderAnalysisStatus[tender.id] === 'success') && (
+                          <span className="data-source-badge ai-badge">AI Analysis</span>
+                        )}
                         <span
                           className="status-badge"
                           style={{ backgroundColor: getStatusColor(tender.status) }}
@@ -1116,6 +1502,49 @@ function App() {
                   </div>
                 </div>
               </div>
+
+              {/* AI Analysis Status for Live Data */}
+              {dataSource === 'live' && apiKeyStatus?.isReady && (
+                <div className="detail-section ai-analysis-status-section">
+                  {(!selectedTender.ai_analyzed && tenderAnalysisStatus[selectedTender.id] !== 'success') ? (
+                    <div className="ai-analysis-banner">
+                      <div className="banner-content">
+                        <span className="banner-icon">🤖</span>
+                        <div className="banner-text">
+                          <h4>AI Analysis Not Available</h4>
+                          <p>This tender hasn't been analyzed by Claude yet. Click below to generate a strategic fit assessment.</p>
+                        </div>
+                      </div>
+                      <button
+                        className="analyze-single-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleAnalyzeSingleTender(selectedTender)
+                        }}
+                        disabled={tenderAnalysisStatus[selectedTender.id] === 'analyzing'}
+                      >
+                        {tenderAnalysisStatus[selectedTender.id] === 'analyzing' ? 'Analyzing...' : 'Analyze This Tender'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="ai-analysis-success-banner">
+                      <span className="success-icon">✓</span>
+                      <span>AI-Powered Strategic Analysis</span>
+                      {tenderAnalysisStatus[selectedTender.id] === 'error' && (
+                        <button
+                          className="retry-analysis-btn"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleAnalyzeSingleTender(selectedTender)
+                          }}
+                        >
+                          Retry Analysis
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Sirona Fit Analysis Section */}
               <div className="detail-section sirona-fit-section">
