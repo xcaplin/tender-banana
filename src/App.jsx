@@ -1382,10 +1382,11 @@ function App() {
                   <h4>About Data Sources</h4>
                   <ul>
                     <li><strong>Sample Data:</strong> Realistic preview with 10 NHS tenders for demonstration</li>
-                    <li><strong>Live Data:</strong> Real tenders from UK Contracts Finder via the Open Contracting Data Standard (OCDS) API</li>
-                    <li><strong>Data Freshness:</strong> Live data is fetched in real-time and cached for 15 minutes</li>
+                    <li><strong>Live Data:</strong> Fetched directly from data.gov.uk's daily OCDS CSV files published by Contracts Finder</li>
+                    <li><strong>Data Freshness:</strong> CSV files are updated daily and cached for 15 minutes</li>
+                    <li><strong>Coverage:</strong> Last 30 days of published tenders from UK government procurement</li>
                     <li><strong>AI Analysis:</strong> Use the "Analyze This Tender" feature for Claude-powered strategic fit assessment</li>
-                    <li><strong>Note:</strong> OCDS data is accessed via CORS proxy for browser compatibility. Search covers the last 90 days by default.</li>
+                    <li><strong>Note:</strong> No CORS issues - direct S3 bucket access from browser. Data may take a few seconds to download and parse.</li>
                   </ul>
                 </div>
               )}
