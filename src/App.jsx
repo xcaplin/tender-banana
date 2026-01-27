@@ -1381,9 +1381,11 @@ function App() {
                   </button>
                   <h4>About Data Sources</h4>
                   <ul>
-                    <li><strong>Sample Data:</strong> Realistic preview with 10 NHS tenders</li>
-                    <li><strong>Live Data:</strong> Real tenders from UK government procurement sources (Contracts Finder, Find a Tender)</li>
-                    <li><strong>Note:</strong> Live data may have CORS restrictions in browser. AI strategic analysis is currently placeholder and will be enhanced in future releases.</li>
+                    <li><strong>Sample Data:</strong> Realistic preview with 10 NHS tenders for demonstration</li>
+                    <li><strong>Live Data:</strong> Real tenders from UK Contracts Finder via the Open Contracting Data Standard (OCDS) API</li>
+                    <li><strong>Data Freshness:</strong> Live data is fetched in real-time and cached for 15 minutes</li>
+                    <li><strong>AI Analysis:</strong> Use the "Analyze This Tender" feature for Claude-powered strategic fit assessment</li>
+                    <li><strong>Note:</strong> OCDS data is accessed via CORS proxy for browser compatibility. Search covers the last 90 days by default.</li>
                   </ul>
                 </div>
               )}
