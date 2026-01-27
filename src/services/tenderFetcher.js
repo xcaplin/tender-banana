@@ -100,6 +100,14 @@ function parseOCDSCSV(csvText) {
   const headers = parseCSVLine(lines[0])
   console.log(`CSV has ${headers.length} columns and ${lines.length - 1} data rows`)
 
+  // Debug logging to show column names
+  console.log('CSV Column Headers:', headers)
+  console.log('First 10 headers:', headers.slice(0, 10))
+  console.log('Headers containing "title":', headers.filter(h => h.toLowerCase().includes('title')))
+  console.log('Headers containing "buyer":', headers.filter(h => h.toLowerCase().includes('buyer')))
+  console.log('Headers containing "tender":', headers.filter(h => h.toLowerCase().includes('tender')))
+  console.log('Headers containing "value":', headers.filter(h => h.toLowerCase().includes('value')))
+
   const tenders = []
 
   // Parse each data row
