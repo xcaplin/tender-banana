@@ -130,7 +130,15 @@ export const fetchOCDSTenders = async (params = {}, retryCount = 0) => {
     }
 
     const data = await response.json()
-    console.log('OCDS API response received:', data)
+
+    // Debug logging to test API response
+    console.log('OCDS API Response:', {
+      url: proxiedUrl,
+      status: response.status,
+      headers: Object.fromEntries(response.headers.entries()),
+      dataStructure: Object.keys(data),
+      firstRelease: data.releases?.[0]
+    })
 
     // Parse and map to our tender structure
     let tenders = parseOCDSResponse(data, params)
