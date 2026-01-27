@@ -1,507 +1,316 @@
 /**
- * Tender Data Fetcher Service
+ * Tender Fetcher Service - OCDS CSV Direct Download Method
  *
- * Fetches live tender data from UK government Contracts Finder using the Open Contracting Data Standard (OCDS) API.
- * Data sourced from: https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search
- *
- * Uses CORS proxy for browser-based access to public OCDS data.
+ * Downloads daily CSV files from data.gov.uk's S3 bucket
+ * No CORS issues, no proxies needed
+ * Data updated daily with all UK Contracts Finder notices
  */
 
-// Configuration
-const CONFIG = {
-  OCDS_API_BASE: 'https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search',
-  CORS_PROXY: 'https://corsproxy.io/?',
-  USE_CORS_PROXY: true,
-  CACHE_DURATION: 15 * 60 * 1000, // 15 minutes in milliseconds
-  DEFAULT_LIMIT: 100, // Number of records to fetch per request
-  MAX_RETRIES: 2,
-}
+// S3 base URL for OCDS CSV files
+const S3_BASE_URL = 'https://cdp-sirsi-production-cfs-471112843276.s3.eu-west-2.amazonaws.com/Harvester-new'
 
 /**
- * Check if cached data is still valid
+ * Generate URLs for CSV files covering the last N days
  */
-const isCacheValid = (cacheKey) => {
-  const cached = sessionStorage.getItem(cacheKey)
-  if (!cached) return false
+function generateCSVUrls(daysBack = 30) {
+  const urls = []
+  const today = new Date()
 
-  try {
-    const { timestamp } = JSON.parse(cached)
-    return Date.now() - timestamp < CONFIG.CACHE_DURATION
-  } catch (error) {
-    console.error('Error reading cache:', error)
-    return false
+  for (let i = 0; i < daysBack; i++) {
+    const date = new Date(today)
+    date.setDate(date.getDate() - i)
+
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+
+    const url = `${S3_BASE_URL}/${year}-${month}/Contracts%20Finder%20OCDS%20${year}-${month}-${day}.csv`
+    urls.push({ url, date: `${year}-${month}-${day}` })
   }
+
+  return urls
 }
 
 /**
- * Get cached data
+ * Fetch a single CSV file from S3
  */
-const getCachedData = (cacheKey) => {
+async function fetchCSVFile(url, dateStr) {
   try {
-    const cached = sessionStorage.getItem(cacheKey)
-    if (!cached) return null
+    console.log(`Fetching OCDS CSV for ${dateStr}...`)
+    const response = await fetch(url)
 
-    const { data } = JSON.parse(cached)
-    return data
+    if (!response.ok) {
+      // File might not exist yet (future date or weekend)
+      if (response.status === 404 || response.status === 403) {
+        console.log(`No data available for ${dateStr} (404/403)`)
+        return null
+      }
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const csvText = await response.text()
+    console.log(`Downloaded ${csvText.length} characters for ${dateStr}`)
+    return csvText
+
   } catch (error) {
-    console.error('Error parsing cached data:', error)
+    console.error(`Failed to fetch ${dateStr}:`, error.message)
     return null
   }
 }
 
 /**
- * Set cached data
+ * Parse a CSV line handling quoted fields with commas
  */
-const setCachedData = (cacheKey, data) => {
-  try {
-    const cacheObject = {
-      timestamp: Date.now(),
-      data
+function parseCSVLine(line) {
+  const result = []
+  let current = ''
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+
+    if (char === '"') {
+      inQuotes = !inQuotes
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim())
+      current = ''
+    } else {
+      current += char
     }
-    sessionStorage.setItem(cacheKey, JSON.stringify(cacheObject))
-  } catch (error) {
-    console.error('Error setting cache:', error)
   }
+
+  result.push(current.trim())
+  return result.map(v => v.replace(/^"|"$/g, '').trim())
 }
 
 /**
- * Build URL with CORS proxy if enabled
+ * Parse OCDS CSV into tender objects
  */
-const buildProxiedUrl = (url) => {
-  if (CONFIG.USE_CORS_PROXY && CONFIG.CORS_PROXY) {
-    return CONFIG.CORS_PROXY + encodeURIComponent(url)
-  }
-  return url
-}
-
-/**
- * Fetch tenders from Contracts Finder OCDS API
- *
- * @param {Object} params - Search parameters
- * @param {string} params.keywords - Search keywords
- * @param {string} params.location - Location/region filter
- * @param {number} params.minValue - Minimum contract value
- * @param {number} params.maxValue - Maximum contract value
- * @param {string} params.publishedFrom - Start date (YYYY-MM-DD)
- * @param {string} params.publishedTo - End date (YYYY-MM-DD)
- * @returns {Promise<Array>} Array of tender objects
- */
-export const fetchOCDSTenders = async (params = {}, retryCount = 0) => {
-  try {
-    const cacheKey = `ocds_tenders_${JSON.stringify(params)}`
-
-    // Check cache first
-    if (isCacheValid(cacheKey)) {
-      console.log('Returning cached OCDS data')
-      const cachedData = getCachedData(cacheKey)
-      return cachedData || []
-    }
-
-    // Set default date range if not provided (last 90 days)
-    const today = new Date()
-    const ninetyDaysAgo = new Date()
-    ninetyDaysAgo.setDate(today.getDate() - 90)
-
-    const publishedFrom = params.publishedFrom || ninetyDaysAgo.toISOString().split('T')[0]
-    const publishedTo = params.publishedTo || today.toISOString().split('T')[0]
-
-    // Build query parameters for OCDS API
-    const queryParams = new URLSearchParams({
-      publishedFrom: publishedFrom,
-      publishedTo: publishedTo,
-      limit: CONFIG.DEFAULT_LIMIT.toString()
-    })
-
-    const url = `${CONFIG.OCDS_API_BASE}?${queryParams.toString()}`
-    const proxiedUrl = buildProxiedUrl(url)
-
-    console.log('Fetching from Contracts Finder OCDS API:', url)
-    console.log('Date range:', publishedFrom, 'to', publishedTo)
-
-    const response = await fetch(proxiedUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`OCDS API error: ${response.status} ${response.statusText}`)
-    }
-
-    const data = await response.json()
-
-    // Debug logging to test API response
-    console.log('OCDS API Response:', {
-      url: proxiedUrl,
-      status: response.status,
-      headers: Object.fromEntries(response.headers.entries()),
-      dataStructure: Object.keys(data),
-      firstRelease: data.releases?.[0]
-    })
-
-    // Parse and map to our tender structure
-    let tenders = parseOCDSResponse(data, params)
-
-    // Apply client-side filtering
-    tenders = applyFilters(tenders, params)
-
-    console.log(`Successfully fetched and filtered ${tenders.length} tenders from OCDS API`)
-
-    // Cache the results
-    setCachedData(cacheKey, tenders)
-
-    return tenders
-
-  } catch (error) {
-    console.error('Error fetching OCDS tenders:', error)
-
-    // Retry logic
-    if (retryCount < CONFIG.MAX_RETRIES) {
-      console.log(`Retrying... Attempt ${retryCount + 1} of ${CONFIG.MAX_RETRIES}`)
-      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)))
-      return fetchOCDSTenders(params, retryCount + 1)
-    }
-
-    // Return empty array on final failure
+function parseOCDSCSV(csvText) {
+  if (!csvText || csvText.trim().length === 0) {
     return []
   }
-}
 
-/**
- * Parse OCDS API response and map to our tender structure
- *
- * OCDS structure:
- * - releases[] array containing tender notices
- * - Each release has: ocid, id, date, buyer, tender, awards, contracts
- *
- * @param {Object} data - OCDS API response
- * @param {Object} params - Original search parameters
- * @returns {Array} Parsed tender objects
- */
-const parseOCDSResponse = (data, params) => {
-  try {
-    // OCDS API returns releases array
-    const releases = data.releases || []
+  const lines = csvText.split('\n').filter(line => line.trim())
+  if (lines.length < 2) {
+    return [] // No data rows
+  }
 
-    if (releases.length === 0) {
-      console.warn('No releases found in OCDS response')
-      return []
-    }
+  // Parse header
+  const headers = parseCSVLine(lines[0])
+  console.log(`CSV has ${headers.length} columns and ${lines.length - 1} data rows`)
 
-    console.log(`Parsing ${releases.length} releases from OCDS data`)
+  const tenders = []
 
-    return releases
-      .filter(release => release.tender) // Only include releases with tender data
-      .map((release, index) => {
-        try {
-          const tender = release.tender
-          const buyer = release.buyer || {}
+  // Parse each data row
+  for (let i = 1; i < lines.length; i++) {
+    try {
+      const values = parseCSVLine(lines[i])
 
-          // Extract value - OCDS uses tender.value object
-          const value = extractValue(tender)
-
-          // Extract deadline - OCDS uses tender.tenderPeriod.endDate
-          const deadline = extractDeadline(tender)
-
-          // Build tender URL
-          const tenderUrl = buildTenderUrl(release)
-
-          return {
-            id: release.ocid || release.id || `OCDS-${Date.now()}-${index}`,
-            title: tender.title || 'Untitled Tender',
-            organization: buyer.name || 'Unknown Organization',
-            value: value,
-            deadline: deadline,
-            status: 'new',
-            summary: tender.description || 'No summary available',
-            detailedDescription: tender.description || 'No detailed description available',
-            url: tenderUrl,
-            region: extractRegion(buyer),
-            categories: extractCategories(tender),
-            source: 'Contracts Finder (OCDS)',
-            fetchedAt: new Date().toISOString(),
-            ocid: release.ocid,
-            publishedDate: release.date || release.publishedDate,
-            // Keep raw OCDS data for reference
-            _raw: {
-              ocid: release.ocid,
-              tender: tender,
-              buyer: buyer
-            }
-          }
-        } catch (error) {
-          console.error('Error parsing individual release:', error, release)
-          return null
-        }
+      // Create row object
+      const row = {}
+      headers.forEach((header, index) => {
+        row[header] = values[index] || ''
       })
-      .filter(tender => tender !== null) // Remove any failed parses
 
-  } catch (error) {
-    console.error('Error parsing OCDS response:', error)
-    return []
-  }
-}
+      // Extract tender fields from flattened OCDS structure
+      // Common OCDS CSV column names (may vary slightly):
+      const title = row['releases/0/tender/title'] || row['tender/title'] || 'Untitled Tender'
+      const buyerName = row['releases/0/buyer/name'] || row['buyer/name'] || 'Unknown Organization'
+      const valueAmount = row['releases/0/tender/value/amount'] || row['tender/value/amount'] || '0'
+      const endDate = row['releases/0/tender/tenderPeriod/endDate'] || row['tender/tenderPeriod/endDate'] || ''
+      const description = row['releases/0/tender/description'] || row['tender/description'] || ''
+      const ocid = row['ocid'] || `tender-${i}`
+      const region = row['releases/0/buyer/address/region'] || row['buyer/address/region'] || ''
+      const locality = row['releases/0/buyer/address/locality'] || row['buyer/address/locality'] || ''
 
-/**
- * Apply client-side filters to tender data
- * Since OCDS API has limited query parameters, we filter on the client side
- */
-const applyFilters = (tenders, params) => {
-  let filtered = [...tenders]
+      // Skip if missing critical fields
+      if (!title || title === 'Untitled Tender') {
+        continue
+      }
 
-  // Keywords filter - search in title and description
-  if (params.keywords) {
-    const keywords = params.keywords.toLowerCase().split(' ')
-    filtered = filtered.filter(tender => {
-      const searchText = `${tender.title} ${tender.summary} ${tender.organization}`.toLowerCase()
-      return keywords.some(keyword => searchText.includes(keyword))
-    })
-  }
+      // Parse value to number
+      const value = parseFloat(valueAmount) || 100000
 
-  // Location filter - search in region and buyer address
-  if (params.location) {
-    const location = params.location.toLowerCase()
-    filtered = filtered.filter(tender => {
-      const locationText = `${tender.region} ${tender.organization}`.toLowerCase()
-      return locationText.includes(location)
-    })
-  }
+      // Parse deadline or set default
+      const deadline = endDate || getDefaultDeadline()
 
-  // Value range filter
-  if (params.minValue) {
-    filtered = filtered.filter(tender => tender.value >= params.minValue)
-  }
+      // Create tender object
+      const tender = {
+        id: ocid,
+        title: title,
+        organization: buyerName,
+        value: value,
+        deadline: deadline,
+        summary: description.substring(0, 200) || title,
+        detailedDescription: description || 'No description available',
+        region: region || locality || 'UK',
+        url: `https://www.contractsfinder.service.gov.uk/notice/${ocid}`,
+        categories: extractCategories(title, description, row),
+        status: 'new',
+        source: 'Contracts Finder (OCDS CSV)',
+        fetchedAt: new Date().toISOString(),
+        sirona_fit: null, // To be filled by AI analysis
+        _raw: row // Keep raw data for debugging
+      }
 
-  if (params.maxValue) {
-    filtered = filtered.filter(tender => tender.value <= params.maxValue)
-  }
+      tenders.push(tender)
 
-  console.log(`Filtered ${tenders.length} tenders down to ${filtered.length} matching criteria`)
-
-  return filtered
-}
-
-/**
- * Extract value from OCDS tender object
- * OCDS structure: tender.value.amount (number) and tender.value.currency (string)
- */
-const extractValue = (tender) => {
-  if (!tender) return 0
-
-  // Check tender.value.amount
-  if (tender.value && tender.value.amount) {
-    return parseFloat(tender.value.amount) || 0
-  }
-
-  // Check tender.minValue
-  if (tender.minValue && tender.minValue.amount) {
-    return parseFloat(tender.minValue.amount) || 0
-  }
-
-  // Check tender.estimatedValue
-  if (tender.estimatedValue && tender.estimatedValue.amount) {
-    return parseFloat(tender.estimatedValue.amount) || 0
-  }
-
-  // Default minimum value for tenders
-  return 100000
-}
-
-/**
- * Extract deadline from OCDS tender object
- * OCDS structure: tender.tenderPeriod.endDate (ISO date string)
- */
-const extractDeadline = (tender) => {
-  if (!tender) return getDefaultDeadline()
-
-  // Check tender.tenderPeriod.endDate
-  if (tender.tenderPeriod && tender.tenderPeriod.endDate) {
-    try {
-      return new Date(tender.tenderPeriod.endDate).toISOString()
     } catch (error) {
-      console.error('Error parsing tenderPeriod.endDate:', error)
+      console.error(`Error parsing row ${i}:`, error.message)
+      // Continue with next row
     }
   }
 
-  // Check tender.contractPeriod.endDate as fallback
-  if (tender.contractPeriod && tender.contractPeriod.endDate) {
-    try {
-      return new Date(tender.contractPeriod.endDate).toISOString()
-    } catch (error) {
-      console.error('Error parsing contractPeriod.endDate:', error)
-    }
-  }
-
-  return getDefaultDeadline()
+  console.log(`Successfully parsed ${tenders.length} tenders from CSV`)
+  return tenders
 }
 
 /**
  * Get default deadline (30 days from now)
  */
-const getDefaultDeadline = () => {
+function getDefaultDeadline() {
   const date = new Date()
   date.setDate(date.getDate() + 30)
   return date.toISOString()
 }
 
 /**
- * Build tender URL from OCDS release
+ * Extract categories from tender data
  */
-const buildTenderUrl = (release) => {
-  // Contracts Finder URLs follow pattern: /Notice/{id}
-  if (release.id) {
-    return `https://www.contractsfinder.service.gov.uk/Notice/${release.id}`
+function extractCategories(title, description, row) {
+  const categories = []
+  const text = `${title} ${description}`.toLowerCase()
+
+  // Map keywords to categories
+  const categoryMap = {
+    'Healthcare': ['health', 'nhs', 'medical', 'clinical', 'hospital'],
+    'Community Services': ['community', 'neighbourhood', 'local'],
+    'Mental Health': ['mental health', 'psychiatric', 'psychological', 'wellbeing'],
+    'Urgent Care': ['urgent care', 'emergency', 'out of hours', 'walk-in'],
+    'Primary Care': ['primary care', 'gp', 'general practice', 'family practice'],
+    'Integrated Care': ['integrated care', 'ics', 'icb', 'integrated health'],
+    'Children & Young People': ['children', 'paediatric', 'pediatric', 'young people', 'youth'],
+    'Social Care': ['social care', 'adult social', 'care homes'],
+    'Rehabilitation': ['rehabilitation', 'therapy', 'physiotherapy', 'occupational therapy'],
+    'Dental Services': ['dental', 'dentist', 'orthodontic']
   }
 
-  // Fallback to OCID-based URL
-  if (release.ocid) {
-    return `https://www.contractsfinder.service.gov.uk/Search/Results?ocid=${release.ocid}`
+  for (const [category, keywords] of Object.entries(categoryMap)) {
+    if (keywords.some(keyword => text.includes(keyword))) {
+      categories.push(category)
+    }
   }
 
-  return 'https://www.contractsfinder.service.gov.uk/'
+  // Check OCDS classification
+  const mainCategory = row['releases/0/tender/mainProcurementCategory'] || row['tender/mainProcurementCategory'] || ''
+  if (mainCategory.toLowerCase().includes('service') && categories.length === 0) {
+    categories.push('Services')
+  }
+
+  return categories.length > 0 ? [...new Set(categories)] : ['Other']
 }
 
 /**
- * Extract region from OCDS buyer object
+ * Apply client-side filters to tender list
  */
-const extractRegion = (buyer) => {
-  if (!buyer) return 'UK'
+function applyFilters(tenders, searchParams) {
+  let filtered = tenders
 
-  // Check buyer.address
-  if (buyer.address) {
-    const address = buyer.address
-    return address.region || address.locality || address.countryName || 'UK'
+  console.log(`Applying filters to ${tenders.length} tenders...`)
+
+  // Keywords filter
+  if (searchParams.keywords && searchParams.keywords.trim()) {
+    const keywords = searchParams.keywords.toLowerCase().trim()
+    filtered = filtered.filter(t =>
+      t.title.toLowerCase().includes(keywords) ||
+      t.summary.toLowerCase().includes(keywords) ||
+      t.organization.toLowerCase().includes(keywords) ||
+      t.detailedDescription.toLowerCase().includes(keywords)
+    )
+    console.log(`After keywords filter: ${filtered.length} tenders`)
   }
 
-  return 'UK'
+  // Location filter
+  if (searchParams.location && searchParams.location.trim()) {
+    const location = searchParams.location.toLowerCase().trim()
+    filtered = filtered.filter(t =>
+      t.region.toLowerCase().includes(location) ||
+      t.organization.toLowerCase().includes(location)
+    )
+    console.log(`After location filter: ${filtered.length} tenders`)
+  }
+
+  // Value range filters
+  if (searchParams.minValue) {
+    const minVal = parseFloat(searchParams.minValue)
+    filtered = filtered.filter(t => t.value >= minVal)
+    console.log(`After min value filter: ${filtered.length} tenders`)
+  }
+
+  if (searchParams.maxValue) {
+    const maxVal = parseFloat(searchParams.maxValue)
+    filtered = filtered.filter(t => t.value <= maxVal)
+    console.log(`After max value filter: ${filtered.length} tenders`)
+  }
+
+  // Date range filter (on deadline)
+  if (searchParams.publishedFrom || searchParams.publishedTo) {
+    filtered = filtered.filter(t => {
+      if (!t.deadline) return false
+
+      const deadline = new Date(t.deadline)
+      const from = searchParams.publishedFrom ? new Date(searchParams.publishedFrom) : new Date('2000-01-01')
+      const to = searchParams.publishedTo ? new Date(searchParams.publishedTo) : new Date('2100-01-01')
+
+      return deadline >= from && deadline <= to
+    })
+    console.log(`After date filter: ${filtered.length} tenders`)
+  }
+
+  console.log(`Final filtered count: ${filtered.length} tenders`)
+  return filtered
 }
 
 /**
- * Extract categories from OCDS tender object
- * Uses tender.classification and tender.mainProcurementCategory
+ * Enrich tender with placeholder AI analysis data
  */
-const extractCategories = (tender) => {
-  const categories = new Set()
-
-  if (!tender) return ['Other']
-
-  // Check mainProcurementCategory
-  if (tender.mainProcurementCategory) {
-    const category = tender.mainProcurementCategory
-    if (category.includes('services') || category.includes('Services')) {
-      categories.add('Professional Services')
-    }
-    if (category.includes('goods') || category.includes('Goods')) {
-      categories.add('Goods & Supplies')
-    }
-    if (category.includes('works') || category.includes('Works')) {
-      categories.add('Construction & Works')
-    }
+export async function enrichTenderWithAI(tender) {
+  // Generate placeholder data
+  const placeholderFit = {
+    alignment_score: Math.floor(Math.random() * 30) + 60, // 60-90%
+    recommendation: getRandomRecommendation(),
+    rationale: 'This tender requires AI analysis. Use the "Analyze This Tender" feature for detailed strategic fit assessment.',
+    win_themes: [
+      'Community-focused healthcare delivery',
+      'Integrated care experience',
+      'Local knowledge and presence'
+    ],
+    competitors: [
+      'Local NHS Trusts',
+      'Other community health providers',
+      'National healthcare organizations'
+    ],
+    weak_spots: [
+      'Competitive landscape to be assessed',
+      'Strategic fit requires detailed analysis',
+      'Resource requirements need review'
+    ],
+    categories: tender.categories || []
   }
 
-  // Check classification (CPV codes)
-  if (tender.classification) {
-    const classification = tender.classification
-    const desc = (classification.description || '').toLowerCase()
-    const scheme = classification.scheme || ''
-
-    if (desc.includes('health') || desc.includes('medical')) {
-      categories.add('Healthcare')
-    }
-    if (desc.includes('social')) {
-      categories.add('Social Care')
-    }
-  }
-
-  // Check title and description for keywords
-  const text = `${tender.title || ''} ${tender.description || ''}`.toLowerCase()
-
-  if (text.includes('health') || text.includes('nhs') || text.includes('medical')) {
-    categories.add('Healthcare')
-  }
-  if (text.includes('community')) {
-    categories.add('Community Services')
-  }
-  if (text.includes('mental health') || text.includes('mental')) {
-    categories.add('Mental Health')
-  }
-  if (text.includes('children') || text.includes('young people') || text.includes('youth')) {
-    categories.add('Children & Young People')
-  }
-  if (text.includes('rehabilitation') || text.includes('therapy') || text.includes('physiotherapy')) {
-    categories.add('Rehabilitation')
-  }
-  if (text.includes('dental') || text.includes('dentist')) {
-    categories.add('Dental Services')
-  }
-  if (text.includes('care') && !categories.has('Healthcare')) {
-    categories.add('Social Care')
-  }
-
-  // Return as array, with default if empty
-  const categoryArray = Array.from(categories)
-  return categoryArray.length > 0 ? categoryArray : ['Other']
-}
-
-/**
- * Enrich tender with AI-generated strategic fit analysis
- * Note: This now uses placeholder data. Real AI analysis is done via the Claude analyzer service.
- */
-export const enrichTenderWithAI = async (tender) => {
-  try {
-    // Placeholder sirona_fit data
-    // Real AI analysis should use src/services/claudeAnalyzer.js
-    const placeholderFit = {
-      alignment_score: Math.floor(Math.random() * 30) + 60, // 60-90%
-      recommendation: getRandomRecommendation(),
-      rationale: 'This tender requires AI analysis. Use the "Analyze This Tender" feature for detailed strategic fit assessment.',
-      win_themes: [
-        'Community-focused healthcare delivery',
-        'Integrated care experience',
-        'Local knowledge and presence'
-      ],
-      competitors: [
-        'Local NHS Trusts',
-        'Other community health providers',
-        'National healthcare organizations'
-      ],
-      weak_spots: [
-        'Competitive landscape to be assessed',
-        'Strategic fit requires detailed analysis',
-        'Resource requirements need review'
-      ],
-      categories: tender.categories || []
-    }
-
-    return {
-      ...tender,
-      sirona_fit: placeholderFit
-    }
-  } catch (error) {
-    console.error('Error enriching tender with AI:', error)
-
-    return {
-      ...tender,
-      sirona_fit: {
-        alignment_score: 50,
-        recommendation: 'Monitor',
-        rationale: 'Unable to generate initial analysis',
-        win_themes: [],
-        competitors: [],
-        weak_spots: ['Analysis pending'],
-        categories: tender.categories || []
-      }
-    }
+  return {
+    ...tender,
+    sirona_fit: placeholderFit
   }
 }
 
 /**
  * Get random recommendation for placeholder
  */
-const getRandomRecommendation = () => {
+function getRandomRecommendation() {
   const recommendations = ['Strong Go', 'Conditional Go', 'Monitor', 'No Bid']
-  const weights = [0.25, 0.35, 0.30, 0.10] // Probability weights
+  const weights = [0.25, 0.35, 0.30, 0.10]
 
   const random = Math.random()
   let cumulative = 0
@@ -517,43 +326,95 @@ const getRandomRecommendation = () => {
 }
 
 /**
- * Main orchestration function to fetch and process tender data
- *
- * @param {Object} searchParams - Search parameters for API
- * @returns {Promise<Array>} Complete tender array ready for dashboard
+ * Main function to fetch and process tenders
  */
-export const fetchAndProcessTenders = async (searchParams = {}) => {
-  try {
-    console.log('Starting OCDS tender data fetch and processing...')
-    console.log('Search parameters:', searchParams)
+export async function fetchAndProcessTenders(searchParams) {
+  console.log('=== FETCHING TENDERS FROM DATA.GOV.UK ===')
+  console.log('Search parameters:', searchParams)
 
-    // Fetch from OCDS API
-    const ocdsTenders = await fetchOCDSTenders(searchParams)
+  // Check cache first
+  const cacheKey = 'ocds_tenders_cache'
+  const cacheTimestampKey = 'ocds_tenders_cache_timestamp'
+  const CACHE_DURATION = 15 * 60 * 1000 // 15 minutes
 
-    console.log(`Fetched ${ocdsTenders.length} tenders from OCDS API`)
+  const cachedTimestamp = sessionStorage.getItem(cacheTimestampKey)
+  const now = Date.now()
 
-    if (ocdsTenders.length === 0) {
-      console.warn('No tenders returned from OCDS API. Try adjusting your search parameters.')
-      return []
+  let allTenders = []
+
+  if (cachedTimestamp && (now - parseInt(cachedTimestamp)) < CACHE_DURATION) {
+    console.log('Using cached tender data')
+    const cachedData = sessionStorage.getItem(cacheKey)
+    if (cachedData) {
+      try {
+        allTenders = JSON.parse(cachedData)
+        console.log(`Loaded ${allTenders.length} tenders from cache`)
+      } catch (error) {
+        console.error('Error parsing cached data:', error)
+        allTenders = []
+      }
+    }
+  }
+
+  // Fetch fresh data if cache is empty or expired
+  if (allTenders.length === 0) {
+    console.log('Fetching fresh data from data.gov.uk S3...')
+
+    // Get URLs for last 30 days
+    const csvUrls = generateCSVUrls(30)
+    console.log(`Generated ${csvUrls.length} CSV URLs to fetch`)
+
+    // Fetch CSVs (limit concurrent requests)
+    const BATCH_SIZE = 5
+    for (let i = 0; i < csvUrls.length; i += BATCH_SIZE) {
+      const batch = csvUrls.slice(i, i + BATCH_SIZE)
+      const promises = batch.map(({ url, date }) => fetchCSVFile(url, date))
+      const results = await Promise.all(promises)
+
+      // Parse successful fetches
+      for (const csvText of results) {
+        if (csvText) {
+          const tenders = parseOCDSCSV(csvText)
+          allTenders.push(...tenders)
+        }
+      }
+
+      console.log(`Progress: Fetched ${i + batch.length}/${csvUrls.length} days, ${allTenders.length} total tenders`)
     }
 
-    // Enrich each tender with placeholder AI analysis
-    const enrichedTenders = await Promise.all(
-      ocdsTenders.map(tender => enrichTenderWithAI(tender))
-    )
+    // Remove duplicates by OCID
+    const uniqueTenders = []
+    const seenOcids = new Set()
+    for (const tender of allTenders) {
+      if (!seenOcids.has(tender.id)) {
+        seenOcids.add(tender.id)
+        uniqueTenders.push(tender)
+      }
+    }
+    allTenders = uniqueTenders
 
-    console.log(`Successfully processed ${enrichedTenders.length} tenders`)
+    // Enrich with placeholder AI data
+    allTenders = await Promise.all(allTenders.map(t => enrichTenderWithAI(t)))
 
-    return enrichedTenders
-  } catch (error) {
-    console.error('Error in fetchAndProcessTenders:', error)
-    return []
+    // Cache the results
+    sessionStorage.setItem(cacheKey, JSON.stringify(allTenders))
+    sessionStorage.setItem(cacheTimestampKey, now.toString())
+    console.log(`Cached ${allTenders.length} tenders`)
   }
+
+  // Apply filters
+  const filtered = applyFilters(allTenders, searchParams)
+
+  console.log(`=== FETCH COMPLETE ===`)
+  console.log(`Total tenders: ${allTenders.length}`)
+  console.log(`After filtering: ${filtered.length}`)
+
+  return filtered
 }
 
 // Export configuration for external use
-export const getConfig = () => ({ ...CONFIG })
-
-export const updateConfig = (updates) => {
-  Object.assign(CONFIG, updates)
-}
+export const getConfig = () => ({
+  S3_BASE_URL,
+  CACHE_DURATION: 15 * 60 * 1000,
+  DAYS_BACK: 30
+})
