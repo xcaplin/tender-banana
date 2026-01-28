@@ -65,12 +65,15 @@ function applyFilters(tenders, searchParams) {
     console.log(`After keywords filter: ${filtered.length} tenders`)
   }
 
-  // Location filter
+  // Location filter - searches across multiple fields for better regional coverage
   if (searchParams.location?.trim()) {
     const loc = searchParams.location.toLowerCase().trim()
     filtered = filtered.filter(t =>
       t.region.toLowerCase().includes(loc) ||
-      t.organization.toLowerCase().includes(loc)
+      t.organization.toLowerCase().includes(loc) ||
+      t.title.toLowerCase().includes(loc) ||
+      t.summary.toLowerCase().includes(loc) ||
+      (t.detailedDescription && t.detailedDescription.toLowerCase().includes(loc))
     )
     console.log(`After location filter: ${filtered.length} tenders`)
   }

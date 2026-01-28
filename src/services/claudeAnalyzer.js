@@ -106,6 +106,20 @@ Sirona is a large NHS community and neighbourhood services provider operating ac
 - Integrated Care (multidisciplinary teams, care coordination)
 - Specialist Services (children's health, sexual health, dental services)
 
+**Geographic Considerations:**
+Sirona's primary service area is the BNSSG ICB (Bristol, North Somerset, South Gloucestershire). However, services in neighboring areas should be assessed based on physical proximity and operational feasibility, particularly:
+- Bath & North East Somerset (immediately adjacent, strong connectivity)
+- Somerset (borders North Somerset, some shared communities)
+- South Gloucestershire borders with Gloucestershire
+- Wiltshire (some border communities)
+
+When analyzing tenders outside the core BNSSG area, consider:
+1. Physical proximity to existing Sirona facilities and teams
+2. Travel time and accessibility for staff
+3. Potential for service integration with existing operations
+4. Whether border communities already receive Sirona services
+5. Strategic value of expanding into adjacent areas
+
 **Tender to Analyze:**
 - **Title:** ${tender.title}
 - **Organization:** ${tender.organization}
@@ -141,11 +155,13 @@ Please analyze this tender opportunity and provide your assessment in the follow
 }
 
 **Guidance:**
-- alignment_score: Consider service fit, geographic alignment (BNSSG region), organizational capacity, and strategic value
-- rationale: Focus on strategic fit and business case strength
-- win_themes: Identify 3-5 specific competitive advantages Sirona could leverage
+- alignment_score: Consider service fit, geographic alignment, organizational capacity, and strategic value
+  * Geographic scoring: Core BNSSG area (100%), immediately adjacent areas with good connectivity (80-90%), neighboring regions with operational feasibility (60-80%), distant locations (below 60%)
+  * Prioritize tenders where Sirona's existing infrastructure and teams could be leveraged
+- rationale: Focus on strategic fit, business case strength, and geographic/operational feasibility
+- win_themes: Identify 3-5 specific competitive advantages Sirona could leverage, including local presence and proximity advantages
 - competitors: Name likely competing organizations (other NHS trusts, private healthcare providers, social enterprises)
-- weak_spots: Highlight 2-4 genuine concerns or risks
+- weak_spots: Highlight 2-4 genuine concerns or risks, including any geographic challenges
 - recommendation:
   * Strong Go (90-100% alignment): Excellent fit, pursue actively
   * Conditional Go (70-89% alignment): Good fit with some conditions to address
