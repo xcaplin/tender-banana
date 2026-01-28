@@ -114,7 +114,7 @@ function App() {
 
   // Get selected tender object
   const selectedTender = selectedTenderId
-    ? tenders.find(t => t.id === selectedTenderId)
+    ? currentTenders.find(t => t.id === selectedTenderId)
     : null
 
   // Handle ESC key to close detail panel
