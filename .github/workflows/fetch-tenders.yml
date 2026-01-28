@@ -34,8 +34,8 @@ jobs:
 
           # Create the fetch script
           cat > scripts/fetch-ocds-data.js << 'SCRIPT_EOF'
-          const https = require('https');
-          const fs = require('fs');
+          import https from 'https';
+          import fs from 'fs';
 
           const S3_BASE = 'https://cdp-sirsi-production-cfs-471112843276.s3.eu-west-2.amazonaws.com/Harvester-new';
 
