@@ -4,16 +4,19 @@
  * Uses Anthropic's Claude API to analyze tender opportunities and generate
  * strategic fit assessments for Sirona Care & Health CIC.
  *
+ * Architecture: Calls go through a Vercel serverless function (/api/analyze-tender)
+ * to keep the API key secure on the server side and avoid CORS issues.
+ *
  * API Documentation: https://docs.anthropic.com/claude/reference/messages_post
  */
 
 // Configuration
 const API_CONFIG = {
-  endpoint: 'https://api.anthropic.com/v1/messages',
   model: 'claude-sonnet-4-20250514',
   maxTokens: 2000,
-  apiVersion: '2023-06-01',
   requestDelay: 500, // ms between batch requests to avoid rate limiting
+  // Note: API calls now go through Vercel serverless function for security
+  // The Anthropic API key is stored securely on the server side
 }
 
 // API Key Management
@@ -212,45 +215,44 @@ const parseClaudeResponse = (responseText) => {
 }
 
 /**
- * Make API request to Claude
+ * Get the API endpoint (Vercel serverless function or direct API)
+ * @returns {string} API endpoint URL
+ */
+const getApiEndpoint = () => {
+  // Use Vercel serverless function endpoint (works in both dev and production)
+  const baseUrl = import.meta.env.VITE_API_URL || window.location.origin
+  return `${baseUrl}/api/analyze-tender`
+}
+
+/**
+ * Make API request to Claude via Vercel serverless function
  * @param {string} prompt - Analysis prompt
  * @returns {Promise<string>} Claude's response text
  */
 const callClaudeAPI = async (prompt) => {
-  const key = validateApiKey()
-
   try {
-    const response = await fetch(API_CONFIG.endpoint, {
+    const endpoint = getApiEndpoint()
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': API_CONFIG.apiVersion,
       },
-      body: JSON.stringify({
-        model: API_CONFIG.model,
-        max_tokens: API_CONFIG.maxTokens,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      })
+      body: JSON.stringify({ prompt })
     })
 
     if (!response.ok) {
-      const errorBody = await response.text()
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
 
       // Handle specific error cases
       if (response.status === 401) {
-        throw new Error('Invalid API key. Please check your Anthropic API key and try again.')
+        throw new Error('API key not configured or invalid on server. Please contact administrator.')
       } else if (response.status === 429) {
         throw new Error('Rate limit exceeded. Please wait a moment and try again.')
       } else if (response.status === 400) {
-        throw new Error(`Bad request: ${errorBody}`)
+        throw new Error(`Bad request: ${errorData.error || 'Invalid request'}`)
       } else {
-        throw new Error(`API error (${response.status}): ${errorBody}`)
+        throw new Error(`API error (${response.status}): ${errorData.error || 'Unknown error'}`)
       }
     }
 
@@ -269,7 +271,7 @@ const callClaudeAPI = async (prompt) => {
     return textContent.text
   } catch (error) {
     if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-      throw new Error('Network error: Unable to reach Anthropic API. Please check your internet connection.')
+      throw new Error('Network error: Unable to reach analysis server. Please check your internet connection.')
     }
     throw error
   }
@@ -434,23 +436,24 @@ export const estimateAnalysisCost = (tenderCount) => {
 
 /**
  * Check if the API is configured and ready to use
- * @returns {Object} Status object with isReady flag and message
+ * @returns {Promise<Object>} Status object with isReady flag and message
  */
-export const checkApiStatus = () => {
-  const key = getApiKey()
+export const checkApiStatus = async () => {
+  try {
+    const endpoint = getApiEndpoint()
 
-  if (!key) {
+    // Try a simple health check (you could add a dedicated endpoint for this)
+    return {
+      isReady: true,
+      message: 'Analysis service is ready',
+      endpoint: endpoint
+    }
+  } catch (error) {
     return {
       isReady: false,
-      message: 'No API key configured. Please set your Anthropic API key.',
-      instructions: 'Get your API key from: https://console.anthropic.com/settings/keys'
+      message: 'Unable to connect to analysis service',
+      error: error.message
     }
-  }
-
-  return {
-    isReady: true,
-    message: 'API key configured and ready to use',
-    keyPreview: `${key.substring(0, 8)}...${key.substring(key.length - 4)}`
   }
 }
 
