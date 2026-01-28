@@ -157,8 +157,13 @@ jobs:
               tenders: allTenders
             };
 
-            fs.writeFileSync('src/data/live-tenders.json', JSON.stringify(output, null, 2));
-            console.log('Written to src/data/live-tenders.json');
+            // Ensure public/data directory exists
+            if (!fs.existsSync('public/data')) {
+              fs.mkdirSync('public/data', { recursive: true });
+            }
+
+            fs.writeFileSync('public/data/live-tenders.json', JSON.stringify(output, null, 2));
+            console.log('Written to public/data/live-tenders.json');
           }
 
           main().catch(console.error);
@@ -171,5 +176,5 @@ jobs:
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git add src/data/live-tenders.json
+          git add public/data/live-tenders.json
           git diff --quiet && git diff --staged --quiet || (git commit -m "Update tender data [automated]" && git push)
