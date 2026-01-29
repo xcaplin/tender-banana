@@ -361,12 +361,15 @@ function App() {
     return filteredAndSortedTenders.filter(t => t.ai_analyzed === true)
   }, [filteredAndSortedTenders])
 
-  // Summary card calculations - shows stats for ANALYSED opportunities
+  // Summary card calculations
   const summaryStats = useMemo(() => {
     const now = new Date()
 
+    // Total tenders in database today (all filtered opportunities)
+    const totalTendersInDatabase = filteredAndSortedTenders.length
+
     // Total analysed opportunities
-    const totalActive = analysedTenders.length
+    const totalAnalyzed = analysedTenders.length
 
     // Strong recommendations (from analysed tenders)
     const strongGo = analysedTenders.filter(
@@ -376,9 +379,9 @@ function App() {
     const strongGoValue = strongGo.reduce((sum, t) => sum + t.value, 0)
 
     // Average alignment (from analysed tenders)
-    const avgAlignment = totalActive > 0
+    const avgAlignment = totalAnalyzed > 0
       ? Math.round(
-          analysedTenders.reduce((sum, t) => sum + t.sirona_fit.alignment_score, 0) / totalActive
+          analysedTenders.reduce((sum, t) => sum + t.sirona_fit.alignment_score, 0) / totalAnalyzed
         )
       : 0
 
@@ -390,18 +393,19 @@ function App() {
     })
     const urgentCount = urgentTenders.length
 
-    // Total pipeline value (from analysed tenders)
-    const totalValue = analysedTenders.reduce((sum, t) => sum + t.value, 0)
+    // Total analysed pipeline value (sum of analysed bids only)
+    const totalAnalyzedValue = analysedTenders.reduce((sum, t) => sum + t.value, 0)
 
     return {
-      totalActive,
+      totalTendersInDatabase,
+      totalAnalyzed,
       strongGoCount,
       strongGoValue,
       avgAlignment,
       urgentCount,
-      totalValue
+      totalAnalyzedValue
     }
-  }, [analysedTenders])
+  }, [filteredAndSortedTenders, analysedTenders])
 
   // Card click handlers
   const handleStrongGoClick = () => {
@@ -815,12 +819,13 @@ function App() {
 
       // Sheet 3: Pipeline Statistics
       const statsData = [
-        { 'Metric': 'Total Active Opportunities', 'Value': summaryStats.totalActive },
+        { 'Metric': 'Total Active Opportunities', 'Value': summaryStats.totalTendersInDatabase },
+        { 'Metric': 'Total Analysed Opportunities', 'Value': summaryStats.totalAnalyzed },
         { 'Metric': 'Strong Go Recommendations', 'Value': summaryStats.strongGoCount },
         { 'Metric': 'Strong Go Total Value (£)', 'Value': summaryStats.strongGoValue },
         { 'Metric': 'Average Alignment Score (%)', 'Value': summaryStats.avgAlignment },
         { 'Metric': 'Urgent Deadlines (30 days)', 'Value': summaryStats.urgentCount },
-        { 'Metric': 'Total Pipeline Value (£)', 'Value': summaryStats.totalValue },
+        { 'Metric': 'Analysed Pipeline Value (£)', 'Value': summaryStats.totalAnalyzedValue },
         { 'Metric': '', 'Value': '' },
         { 'Metric': 'By Recommendation', 'Value': '' },
         { 'Metric': 'Strong Go', 'Value': filteredAndSortedTenders.filter(t => t.sirona_fit.recommendation === 'Strong Go').length },
@@ -1736,7 +1741,8 @@ function App() {
           <div className="card-icon">📊</div>
           <div className="card-content">
             <div className="card-label">Total Active Opportunities</div>
-            <div className="card-value">{summaryStats.totalActive}</div>
+            <div className="card-value">{summaryStats.totalTendersInDatabase}</div>
+            <div className="card-subtitle">In database today</div>
           </div>
         </div>
 
@@ -1779,16 +1785,16 @@ function App() {
           </div>
         </div>
 
-        {/* Card 5 - Total Pipeline Value (Clickable) */}
+        {/* Card 5 - Total Analysed Pipeline Value (Clickable) */}
         <div
           className={`summary-card clickable ${isValueActive ? 'active' : ''}`}
           onClick={handleValueClick}
         >
           <div className="card-icon">💷</div>
           <div className="card-content">
-            <div className="card-label">Total Pipeline Value</div>
-            <div className="card-value">{formatCurrency(summaryStats.totalValue)}</div>
-            <div className="card-subtitle">Combined contract value</div>
+            <div className="card-label">Analysed Pipeline Value</div>
+            <div className="card-value">{formatCurrency(summaryStats.totalAnalyzedValue)}</div>
+            <div className="card-subtitle">Total of analysed bids</div>
           </div>
         </div>
         </div>
