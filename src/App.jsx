@@ -260,7 +260,7 @@ function App() {
     })
 
     return sorted
-  }, [statusFilter, recommendationFilter, categoryFilter, sortBy])
+  }, [currentTenders, statusFilter, recommendationFilter, categoryFilter, sortBy])
 
   // Format currency
   const formatCurrency = (value) => {
@@ -356,37 +356,42 @@ function App() {
     })
   }
 
-  // Summary card calculations
+  // Get only analysed tenders from filtered results
+  const analysedTenders = useMemo(() => {
+    return filteredAndSortedTenders.filter(t => t.ai_analyzed === true)
+  }, [filteredAndSortedTenders])
+
+  // Summary card calculations - shows stats for ANALYSED opportunities
   const summaryStats = useMemo(() => {
     const now = new Date()
 
-    // Total active opportunities
-    const totalActive = filteredAndSortedTenders.length
+    // Total analysed opportunities
+    const totalActive = analysedTenders.length
 
-    // Strong recommendations
-    const strongGo = filteredAndSortedTenders.filter(
+    // Strong recommendations (from analysed tenders)
+    const strongGo = analysedTenders.filter(
       t => t.sirona_fit.recommendation === 'Strong Go'
     )
     const strongGoCount = strongGo.length
     const strongGoValue = strongGo.reduce((sum, t) => sum + t.value, 0)
 
-    // Average alignment
+    // Average alignment (from analysed tenders)
     const avgAlignment = totalActive > 0
       ? Math.round(
-          filteredAndSortedTenders.reduce((sum, t) => sum + t.sirona_fit.alignment_score, 0) / totalActive
+          analysedTenders.reduce((sum, t) => sum + t.sirona_fit.alignment_score, 0) / totalActive
         )
       : 0
 
-    // Urgent deadlines (within 30 days)
-    const urgentTenders = filteredAndSortedTenders.filter(t => {
+    // Urgent deadlines (within 30 days, from analysed tenders)
+    const urgentTenders = analysedTenders.filter(t => {
       const deadline = new Date(t.deadline)
       const daysUntil = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24))
       return daysUntil >= 0 && daysUntil <= 30
     })
     const urgentCount = urgentTenders.length
 
-    // Total pipeline value
-    const totalValue = filteredAndSortedTenders.reduce((sum, t) => sum + t.value, 0)
+    // Total pipeline value (from analysed tenders)
+    const totalValue = analysedTenders.reduce((sum, t) => sum + t.value, 0)
 
     return {
       totalActive,
@@ -396,7 +401,7 @@ function App() {
       urgentCount,
       totalValue
     }
-  }, [filteredAndSortedTenders])
+  }, [analysedTenders])
 
   // Card click handlers
   const handleStrongGoClick = () => {
