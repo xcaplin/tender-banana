@@ -350,6 +350,30 @@
   text-align: center;
 }
 
+/* Sample Data Banner */
+.sample-data-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background-color: #fef3c7;
+  border-bottom: 3px solid #f59e0b;
+  color: #7c2d12;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.sample-data-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.sample-data-text {
+  flex: 1;
+  text-align: center;
+}
+
 /* Search Parameters Section */
 .search-params-section {
   background-color: #F9F5FB;
