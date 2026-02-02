@@ -59,6 +59,8 @@ function App() {
   const [recommendationFilter, setRecommendationFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState([])
   const [sortBy, setSortBy] = useState('deadline-asc')
+  const [isShortlistedOnly, setIsShortlistedOnly] = useState(false)
+  const [isUrgentOnly, setIsUrgentOnly] = useState(false)
 
   // Detail panel state
   const [selectedTenderId, setSelectedTenderId] = useState(null)
@@ -232,6 +234,20 @@ function App() {
         return false
       }
 
+      // Shortlisted filter (Strong Go or Go recommendations)
+      if (isShortlistedOnly) {
+        const isShortlisted = tender.sirona_fit.recommendation === 'Strong Go' || tender.sirona_fit.recommendation === 'Go'
+        if (!isShortlisted) return false
+      }
+
+      // Urgent filter (within 30 days)
+      if (isUrgentOnly) {
+        const deadline = new Date(tender.deadline)
+        const now = new Date()
+        const daysUntil = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24))
+        if (daysUntil < 0 || daysUntil > 30) return false
+      }
+
       // Category filter
       if (categoryFilter.length > 0) {
         const hasCategory = categoryFilter.some(cat => tender.categories.includes(cat))
@@ -260,7 +276,7 @@ function App() {
     })
 
     return sorted
-  }, [currentTenders, statusFilter, recommendationFilter, categoryFilter, sortBy])
+  }, [currentTenders, statusFilter, recommendationFilter, categoryFilter, sortBy, isShortlistedOnly, isUrgentOnly])
 
   // Format currency
   const formatCurrency = (value) => {
@@ -368,20 +384,14 @@ function App() {
     // Total tenders in database today (all filtered opportunities)
     const totalTendersInDatabase = filteredAndSortedTenders.length
 
-    // Total analysed opportunities
-    const totalAnalyzed = analysedTenders.length
-
-    // Strong recommendations (from analysed tenders)
-    const strongGo = analysedTenders.filter(
-      t => t.sirona_fit.recommendation === 'Strong Go'
+    // Shortlisted bids - those with 'Strong Go' or 'Go' recommendations from analysed tenders
+    const shortlistedBids = analysedTenders.filter(
+      t => t.sirona_fit.recommendation === 'Strong Go' || t.sirona_fit.recommendation === 'Go'
     )
-    const strongGoCount = strongGo.length
-    const strongGoValue = strongGo.reduce((sum, t) => sum + t.value, 0)
-
-    // Average alignment (from analysed tenders)
-    const avgAlignment = totalAnalyzed > 0
+    const shortlistedBidsCount = shortlistedBids.length
+    const shortlistedBidsAvgAlignment = shortlistedBidsCount > 0
       ? Math.round(
-          analysedTenders.reduce((sum, t) => sum + t.sirona_fit.alignment_score, 0) / totalAnalyzed
+          shortlistedBids.reduce((sum, t) => sum + t.sirona_fit.alignment_score, 0) / shortlistedBidsCount
         )
       : 0
 
@@ -393,36 +403,47 @@ function App() {
     })
     const urgentCount = urgentTenders.length
 
+    // Total analysed opportunities
+    const totalAnalyzed = analysedTenders.length
+
     // Total analysed pipeline value (sum of analysed bids only)
     const totalAnalyzedValue = analysedTenders.reduce((sum, t) => sum + t.value, 0)
 
     return {
       totalTendersInDatabase,
       totalAnalyzed,
-      strongGoCount,
-      strongGoValue,
-      avgAlignment,
+      shortlistedBidsCount,
+      shortlistedBidsAvgAlignment,
       urgentCount,
       totalAnalyzedValue
     }
   }, [filteredAndSortedTenders, analysedTenders])
 
   // Card click handlers
-  const handleStrongGoClick = () => {
-    setRecommendationFilter('Strong Go')
+  const handleTotalActiveClick = () => {
+    // Reset all filters to show all opportunities
+    setStatusFilter('all')
+    setRecommendationFilter('all')
+    setCategoryFilter([])
+    setIsShortlistedOnly(false)
+    setIsUrgentOnly(false)
+    setSortBy('deadline-asc')
   }
 
-  const handleAlignmentClick = () => {
-    setSortBy('alignment-desc')
+  const handleShortlistedBidsClick = () => {
+    // Toggle shortlisted filter (Strong Go or Go recommendations)
+    setIsShortlistedOnly(!isShortlistedOnly)
+  }
+
+  const handleShortlistedAlignmentClick = () => {
+    // Toggle shortlisted filter (Strong Go or Go recommendations)
+    setIsShortlistedOnly(!isShortlistedOnly)
   }
 
   const handleUrgentClick = () => {
-    // Filter to show tenders with deadline within 30 days
-    const now = new Date()
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    // Toggle urgent filter (within 30 days)
+    setIsUrgentOnly(!isUrgentOnly)
     setSortBy('deadline-asc')
-    // Note: We can't directly filter by date range with current filters,
-    // but sorting by deadline-asc will show urgent ones first
   }
 
   const handleValueClick = () => {
@@ -430,8 +451,10 @@ function App() {
   }
 
   // Check if cards are in active state
-  const isStrongGoActive = recommendationFilter === 'Strong Go'
-  const isAlignmentActive = sortBy === 'alignment-desc'
+  const isTotalActiveActive = statusFilter === 'all' && recommendationFilter === 'all' && !isShortlistedOnly && !isUrgentOnly
+  const isShortlistedActive = isShortlistedOnly
+  const isAlignmentActive = isShortlistedOnly
+  const isUrgentActive = isUrgentOnly
   const isValueActive = sortBy === 'value-high'
 
   // Live data functions
@@ -821,10 +844,9 @@ function App() {
       const statsData = [
         { 'Metric': 'Total Active Opportunities', 'Value': summaryStats.totalTendersInDatabase },
         { 'Metric': 'Total Analysed Opportunities', 'Value': summaryStats.totalAnalyzed },
-        { 'Metric': 'Strong Go Recommendations', 'Value': summaryStats.strongGoCount },
-        { 'Metric': 'Strong Go Total Value (£)', 'Value': summaryStats.strongGoValue },
-        { 'Metric': 'Average Alignment Score (%)', 'Value': summaryStats.avgAlignment },
-        { 'Metric': 'Urgent Deadlines (30 days)', 'Value': summaryStats.urgentCount },
+        { 'Metric': 'Shortlisted Bids Identified So Far', 'Value': summaryStats.shortlistedBidsCount },
+        { 'Metric': 'Shortlisted Bid Alignment (%)', 'Value': summaryStats.shortlistedBidsAvgAlignment },
+        { 'Metric': 'Closing In Next 30 Days', 'Value': summaryStats.urgentCount },
         { 'Metric': 'Analysed Pipeline Value (£)', 'Value': summaryStats.totalAnalyzedValue },
         { 'Metric': '', 'Value': '' },
         { 'Metric': 'By Recommendation', 'Value': '' },
@@ -1736,8 +1758,11 @@ function App() {
             display: isSummaryCollapsed ? 'none' : 'grid'
           }}
         >
-        {/* Card 1 - Total Active Opportunities (Informational) */}
-        <div className="summary-card">
+        {/* Card 1 - Total Active Opportunities (Clickable - Reset Filters) */}
+        <div
+          className={`summary-card clickable ${isTotalActiveActive ? 'active' : ''}`}
+          onClick={handleTotalActiveClick}
+        >
           <div className="card-icon">📊</div>
           <div className="card-content">
             <div className="card-label">Total Active Opportunities</div>
@@ -1746,42 +1771,39 @@ function App() {
           </div>
         </div>
 
-        {/* Card 2 - Strong Recommendations (Clickable) */}
+        {/* Card 2 - Shortlisted Bids Identified So Far (Clickable) */}
         <div
-          className={`summary-card clickable ${isStrongGoActive ? 'active' : ''}`}
-          onClick={handleStrongGoClick}
+          className={`summary-card clickable ${isShortlistedActive ? 'active' : ''}`}
+          onClick={handleShortlistedBidsClick}
         >
           <div className="card-icon">✅</div>
           <div className="card-content">
-            <div className="card-label">Strong Recommendations</div>
-            <div className="card-value">{summaryStats.strongGoCount}</div>
-            <div className="card-subtitle">{formatCurrency(summaryStats.strongGoValue)} total value</div>
+            <div className="card-label">Shortlisted Bids Identified So Far</div>
+            <div className="card-value">{summaryStats.shortlistedBidsCount}</div>
           </div>
         </div>
 
-        {/* Card 3 - Average Alignment (Clickable) */}
+        {/* Card 3 - Shortlisted Bid Alignment (Clickable) */}
         <div
           className={`summary-card clickable ${isAlignmentActive ? 'active' : ''}`}
-          onClick={handleAlignmentClick}
+          onClick={handleShortlistedAlignmentClick}
         >
           <div className="card-icon">🎯</div>
           <div className="card-content">
-            <div className="card-label">Average Alignment</div>
-            <div className="card-value">{summaryStats.avgAlignment}%</div>
-            <div className="card-subtitle">Strategic fit score</div>
+            <div className="card-label">Shortlisted Bid Alignment</div>
+            <div className="card-value">{summaryStats.shortlistedBidsAvgAlignment}%</div>
           </div>
         </div>
 
-        {/* Card 4 - Urgent Deadlines (Clickable) */}
+        {/* Card 4 - Closing In Next 30 Days (Clickable) */}
         <div
-          className="summary-card clickable"
+          className={`summary-card clickable ${isUrgentActive ? 'active' : ''}`}
           onClick={handleUrgentClick}
         >
           <div className="card-icon">⏰</div>
           <div className="card-content">
-            <div className="card-label">Urgent Deadlines</div>
+            <div className="card-label">Closing In Next 30 Days</div>
             <div className="card-value">{summaryStats.urgentCount}</div>
-            <div className="card-subtitle">Within 30 days</div>
           </div>
         </div>
 
