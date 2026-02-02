@@ -1,7 +1,21 @@
 {
-  "generated": "2026-02-01T07:32:28.163Z",
-  "count": 3373,
+  "generated": "2026-02-02T07:44:24.442Z",
+  "count": 3374,
   "tenders": [
+    {
+      "id": "tender-1",
+      "title": "IR35 Project",
+      "organization": "Unknown",
+      "value": 0,
+      "deadline": "",
+      "summary": "Consultancy support in reviewing the tax position of Defra's service contracts, as well as advising on further",
+      "detailedDescription": "Consultancy support in reviewing the tax position of Defra's service contracts, as well as advising on further",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null
+    },
     {
       "id": "tender-1",
       "title": "Legacy Application Development",
