@@ -2033,10 +2033,7 @@ function App() {
                         <h3 className="tender-title">{tender.title}</h3>
                       </div>
                       <div className="tender-badges">
-                        {dataSource === 'sample' && (
-                          <span className="data-source-badge sample-badge">Sample Analysis</span>
-                        )}
-                        {dataSource === 'live' && (tender.ai_analyzed || tenderAnalysisStatus[tender.id] === 'success') && (
+                        {(tender.ai_analyzed || tenderAnalysisStatus[tender.id] === 'success') && (
                           <span className="data-source-badge ai-badge">AI Analysis</span>
                         )}
                         <span
