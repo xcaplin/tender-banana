@@ -1977,9 +1977,6 @@ function App() {
                         <h3 className="tender-title">{tender.title}</h3>
                       </div>
                       <div className="tender-badges">
-                        {isUsingInitialSampleData && (
-                          <span className="data-source-badge sample-badge">SAMPLE DATA</span>
-                        )}
                         {(tender.ai_analyzed || tenderAnalysisStatus[tender.id] === 'success') && (
                           <span className="data-source-badge ai-badge">AI Analysis</span>
                         )}
