@@ -72,10 +72,9 @@ function App() {
   // Loading state
   const [isLoading, setIsLoading] = useState(true)
 
-  // Live data state - always using live data
+  // Live data state - always using live data (sample data removed from front end)
   const [dataSource, setDataSource] = useState('live')
-  const [liveTenders, setLiveTenders] = useState(tenders) // Initialize with sample data
-  const [isUsingInitialSampleData, setIsUsingInitialSampleData] = useState(true) // Track if showing initial sample
+  const [liveTenders, setLiveTenders] = useState([])
   const [isFetching, setIsFetching] = useState(false)
   const [fetchError, setFetchError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
@@ -479,18 +478,18 @@ function App() {
 
       if (fetchedTenders && fetchedTenders.length > 0) {
         setLiveTenders(fetchedTenders)
-        setIsUsingInitialSampleData(false) // Switch from initial sample to live data
         setDataSource('live')
         const timestamp = new Date().toISOString()
         setLastUpdated(timestamp)
         localStorage.setItem('lastTenderFetch', timestamp)
         console.log(`Successfully loaded ${fetchedTenders.length} tenders from live sources`)
       } else {
-        setFetchError('No tenders found matching your search criteria. Try adjusting your parameters.')
+        setFetchError('No tenders found matching your search criteria. Try adjusting your parameters or use sample data.')
       }
     } catch (error) {
       console.error('Error fetching tenders:', error)
-      setFetchError('Unable to fetch live data. This may be due to API access restrictions. Please try again later.')
+      setFetchError('Unable to fetch live data. This may be due to API access restrictions. You can continue using sample data or try again later.')
+      setDataSource('sample') // Fall back to sample data
     } finally {
       setIsFetching(false)
     }
@@ -1380,14 +1379,6 @@ function App() {
           </div>
         )}
       </header>
-
-      {/* Sample Data Banner */}
-      {isUsingInitialSampleData && (
-        <div className="sample-data-banner">
-          <span className="sample-data-icon">⚠️</span>
-          <span className="sample-data-text"><strong>SAMPLE DATA</strong> - Click "Fetch Tenders" to load live opportunities from UK government sources</span>
-        </div>
-      )}
 
       {/* Settings Modal */}
       {showSettingsModal && (
