@@ -2123,6 +2123,14 @@
   border-radius: 4px;
 }
 
+.sample-badge {
+  background-color: #f59e0b;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
 /* Detail Panel - AI Analysis */
 .ai-analysis-status-section {
   padding: 0;
