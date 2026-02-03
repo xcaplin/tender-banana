@@ -1659,29 +1659,26 @@ function App() {
               </div>
             </div>
 
-            <div className="deadline-filter-section">
-              <label className="deadline-filter-label">Bid Deadline Status</label>
-              <div className="deadline-filter-toggle">
-                <button
-                  className={`toggle-option ${!includeExpiredDeadlines ? 'active' : ''}`}
-                  onClick={() => setIncludeExpiredDeadlines(false)}
-                  title="Show only tenders with future deadlines"
-                >
-                  Live Bids
-                </button>
-                <button
-                  className={`toggle-option ${includeExpiredDeadlines ? 'active' : ''}`}
-                  onClick={() => setIncludeExpiredDeadlines(true)}
-                  title="Show all tenders including those with past deadlines"
-                >
-                  All Bids
-                </button>
+            <div className="param-group deadline-filter-group">
+              <div className="deadline-filter-row">
+                <label>Deadline Status</label>
+                <div className="ios-toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="deadline-toggle"
+                    checked={includeExpiredDeadlines}
+                    onChange={(e) => setIncludeExpiredDeadlines(e.target.checked)}
+                    className="toggle-checkbox"
+                  />
+                  <label htmlFor="deadline-toggle" className="toggle-label">
+                    <span className="toggle-inner">
+                      <span className="toggle-switch"></span>
+                      <span className="toggle-text-left">Live</span>
+                      <span className="toggle-text-right">All</span>
+                    </span>
+                  </label>
+                </div>
               </div>
-              <p className="deadline-filter-help">
-                {includeExpiredDeadlines
-                  ? 'Showing all bids (including expired deadlines)'
-                  : 'Showing only active bids (deadline not yet passed)'}
-              </p>
             </div>
 
             <div className="search-params-actions">
