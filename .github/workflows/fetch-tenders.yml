@@ -83,6 +83,7 @@ jobs:
 
             const headers = parseCSVLine(lines[0]);
             const tenders = [];
+            const now = new Date();
 
             for (let i = 1; i < lines.length; i++) {
               try {
@@ -93,12 +94,23 @@ jobs:
                 const title = row['releases/0/tender/title'] || row['tender/title'] || '';
                 if (!title) continue;
 
+                const deadline = row['releases/0/tender/tenderPeriod/endDate'] || row['tender/tenderPeriod/endDate'] || '';
+
+                // Filter out tenders with missing or expired deadlines
+                if (!deadline) continue;
+
+                const deadlineDate = new Date(deadline);
+                if (isNaN(deadlineDate.getTime()) || deadlineDate < now) {
+                  // Skip invalid or past deadlines
+                  continue;
+                }
+
                 const tender = {
                   id: row['ocid'] || `tender-${i}`,
                   title: title,
                   organization: row['releases/0/buyer/name'] || row['buyer/name'] || 'Unknown',
                   value: parseFloat(row['releases/0/tender/value/amount'] || row['tender/value/amount'] || 0),
-                  deadline: row['releases/0/tender/tenderPeriod/endDate'] || row['tender/tenderPeriod/endDate'] || '',
+                  deadline: deadline,
                   summary: (row['releases/0/tender/description'] || row['tender/description'] || '').substring(0, 200),
                   detailedDescription: row['releases/0/tender/description'] || row['tender/description'] || '',
                   region: row['releases/0/buyer/address/region'] || row['buyer/address/region'] || '',
