@@ -61,6 +61,7 @@ function App() {
   const [sortBy, setSortBy] = useState('deadline-asc')
   const [isShortlistedOnly, setIsShortlistedOnly] = useState(false)
   const [isUrgentOnly, setIsUrgentOnly] = useState(false)
+  const [includeExpiredDeadlines, setIncludeExpiredDeadlines] = useState(false) // Default: only show live/future bids
 
   // Detail panel state
   const [selectedTenderId, setSelectedTenderId] = useState(null)
@@ -244,6 +245,14 @@ function App() {
         if (!isShortlisted) return false
       }
 
+      // Deadline filter (exclude expired deadlines by default, unless user includes them)
+      if (!includeExpiredDeadlines) {
+        const deadline = new Date(tender.deadline)
+        const now = new Date()
+        const daysUntil = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24))
+        if (daysUntil < 0) return false
+      }
+
       // Urgent filter (within 30 days)
       if (isUrgentOnly) {
         const deadline = new Date(tender.deadline)
@@ -280,7 +289,7 @@ function App() {
     })
 
     return sorted
-  }, [currentTenders, statusFilter, recommendationFilter, categoryFilter, sortBy, isShortlistedOnly, isUrgentOnly])
+  }, [currentTenders, statusFilter, recommendationFilter, categoryFilter, sortBy, isShortlistedOnly, isUrgentOnly, includeExpiredDeadlines])
 
   // Format currency
   const formatCurrency = (value) => {
@@ -1632,6 +1641,31 @@ function App() {
                   className="param-input"
                 />
               </div>
+            </div>
+
+            <div className="deadline-filter-section">
+              <label className="deadline-filter-label">Bid Deadline Status</label>
+              <div className="deadline-filter-toggle">
+                <button
+                  className={`toggle-option ${!includeExpiredDeadlines ? 'active' : ''}`}
+                  onClick={() => setIncludeExpiredDeadlines(false)}
+                  title="Show only tenders with future deadlines"
+                >
+                  Live Bids
+                </button>
+                <button
+                  className={`toggle-option ${includeExpiredDeadlines ? 'active' : ''}`}
+                  onClick={() => setIncludeExpiredDeadlines(true)}
+                  title="Show all tenders including those with past deadlines"
+                >
+                  All Bids
+                </button>
+              </div>
+              <p className="deadline-filter-help">
+                {includeExpiredDeadlines
+                  ? 'Showing all bids (including expired deadlines)'
+                  : 'Showing only active bids (deadline not yet passed)'}
+              </p>
             </div>
 
             <div className="search-params-actions">
