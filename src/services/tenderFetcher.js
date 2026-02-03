@@ -9,6 +9,7 @@
 /**
  * Main function to fetch and process tenders
  * Reads from locally stored JSON file (updated daily by GitHub Actions)
+ * Returns { tenders: [], totalCount: number }
  */
 export async function fetchAndProcessTenders(searchParams) {
   console.log('Loading tender data from repository...')
@@ -37,11 +38,14 @@ export async function fetchAndProcessTenders(searchParams) {
 
     console.log(`After filtering: ${filtered.length} tenders`)
 
-    return filtered
+    return {
+      tenders: filtered,
+      totalCount: data.count
+    }
 
   } catch (error) {
     console.error('Error loading tender data:', error)
-    return []
+    return { tenders: [], totalCount: 0 }
   }
 }
 

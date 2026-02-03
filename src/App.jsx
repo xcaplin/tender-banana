@@ -75,6 +75,7 @@ function App() {
   // Live data state
   const [dataSource, setDataSource] = useState('sample') // 'sample' | 'live'
   const [liveTenders, setLiveTenders] = useState([])
+  const [totalDatabaseCount, setTotalDatabaseCount] = useState(0) // Total opportunities in database
   const [isFetching, setIsFetching] = useState(false)
   const [fetchError, setFetchError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
@@ -382,7 +383,9 @@ function App() {
     const now = new Date()
 
     // Total tenders in database today (all opportunities, not filtered)
-    const totalTendersInDatabase = currentTenders.length
+    // In live mode: use totalDatabaseCount from API metadata
+    // In sample mode: use currentTenders length
+    const totalTendersInDatabase = dataSource === 'live' ? totalDatabaseCount : currentTenders.length
 
     // Shortlisted bids - those with 'Strong Go' or 'Go' recommendations from analysed tenders
     const shortlistedBids = analysedTenders.filter(
@@ -417,7 +420,7 @@ function App() {
       urgentCount,
       totalAnalyzedValue
     }
-  }, [currentTenders, analysedTenders])
+  }, [currentTenders, analysedTenders, totalDatabaseCount, dataSource])
 
   // Card click handlers
   const handleTotalActiveClick = () => {
@@ -475,15 +478,16 @@ function App() {
         publishedTo: searchParams.publishedTo || undefined,
       }
 
-      const fetchedTenders = await fetchAndProcessTenders(apiParams)
+      const result = await fetchAndProcessTenders(apiParams)
 
-      if (fetchedTenders && fetchedTenders.length > 0) {
-        setLiveTenders(fetchedTenders)
+      if (result && result.tenders && result.tenders.length > 0) {
+        setLiveTenders(result.tenders)
+        setTotalDatabaseCount(result.totalCount)
         setDataSource('live')
         const timestamp = new Date().toISOString()
         setLastUpdated(timestamp)
         localStorage.setItem('lastTenderFetch', timestamp)
-        console.log(`Successfully loaded ${fetchedTenders.length} tenders from live sources`)
+        console.log(`Successfully loaded ${result.tenders.length} tenders from live sources (${result.totalCount} total in database)`)
       } else {
         setFetchError('No tenders found matching your search criteria. Try adjusting your parameters or use sample data.')
       }
