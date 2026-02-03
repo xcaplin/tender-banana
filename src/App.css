@@ -604,6 +604,40 @@
   box-shadow: 0 0 0 3px rgba(123, 45, 142, 0.1);
 }
 
+/* Analyzed Filter */
+.analyzed-filter-section {
+  padding: 0.75rem;
+  background-color: #E0E7FF;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  border: 1px solid #C7D2FE;
+}
+
+.analyzed-filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.analyzed-filter-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--sirona-purple);
+}
+
+.filter-help-text {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
 /* Category Filters */
 .category-filters {
   margin-bottom: 1rem;
