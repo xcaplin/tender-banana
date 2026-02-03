@@ -1683,6 +1683,23 @@ function App() {
 
             <div className="analysis-buttons">
               <button
+                className="analyze-btn analyze-shortlisted-btn"
+                onClick={() => {
+                  const shortlistedBids = liveTenders.filter(t =>
+                    t.sirona_fit.recommendation === 'Strong Go' || t.sirona_fit.recommendation === 'Go'
+                  )
+                  if (shortlistedBids.length === 0) {
+                    alert('No shortlisted bids found to analyze.')
+                    return
+                  }
+                  handleAnalyzeBatch(shortlistedBids)
+                }}
+                disabled={isAnalyzing || isFetching}
+              >
+                Analyze Shortlisted Bids ({liveTenders.filter(t => t.sirona_fit.recommendation === 'Strong Go' || t.sirona_fit.recommendation === 'Go').length})
+              </button>
+
+              <button
                 className="analyze-btn analyze-unanalyzed-btn"
                 onClick={() => {
                   const unanalyzed = liveTenders.filter(t => !t.ai_analyzed && !analyzedTenders.has(t.id))
@@ -1910,6 +1927,25 @@ function App() {
             Showing <strong>{filteredAndSortedTenders.length}</strong> of <strong>{currentTenders.length}</strong> opportunities
             {dataSource === 'live' && <span className="data-source-badge">Live Data</span>}
           </div>
+
+          {dataSource === 'live' && apiKeyStatus?.isReady && filteredAndSortedTenders.length > 0 && (
+            <button
+              className="analyze-filtered-btn"
+              onClick={() => {
+                if (!apiKeyStatus?.isReady) {
+                  alert('Please configure your Anthropic API key in Settings first.')
+                  setShowSettingsModal(true)
+                  return
+                }
+                handleAnalyzeBatch(filteredAndSortedTenders)
+              }}
+              disabled={isAnalyzing || isFetching}
+              title="Analyze the currently displayed/filtered tenders"
+            >
+              <span className="analyze-icon">🤖</span>
+              <span>Analyze Filtered ({filteredAndSortedTenders.length})</span>
+            </button>
+          )}
 
           <div className="export-dropdown-container">
             <button
