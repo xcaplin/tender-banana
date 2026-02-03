@@ -394,6 +394,63 @@
   box-shadow: 0 0 0 3px rgba(123, 45, 142, 0.1);
 }
 
+/* Deadline Filter Toggle */
+.deadline-filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: #F3E8FF;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #DDD6FE;
+}
+
+.deadline-filter-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.deadline-filter-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background-color: white;
+  border-radius: 6px;
+  padding: 0.25rem;
+  border: 1px solid var(--border-color);
+}
+
+.toggle-option {
+  flex: 1;
+  padding: 0.625rem 1rem;
+  border: none;
+  border-radius: 5px;
+  background-color: #F3F4F6;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-option:hover {
+  background-color: #E5E7EB;
+}
+
+.toggle-option.active {
+  background-color: var(--sirona-purple);
+  color: white;
+  box-shadow: 0 2px 8px rgba(123, 45, 142, 0.2);
+}
+
+.deadline-filter-help {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0;
+  font-style: italic;
+}
+
 /* Search Parameters Actions */
 .search-params-actions {
   display: flex;
