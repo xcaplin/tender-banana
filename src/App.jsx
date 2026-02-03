@@ -181,6 +181,9 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showExportDropdown])
 
+  // Get current tender source based on data mode
+  const currentTenders = dataSource === 'live' ? liveTenders : tenders
+
   // Get selected tender object
   const selectedTender = selectedTenderId
     ? currentTenders.find(t => t.id === selectedTenderId)
@@ -208,9 +211,6 @@ function App() {
       document.body.style.overflow = 'unset'
     }
   }, [selectedTenderId])
-
-  // Get current tender source based on data mode
-  const currentTenders = dataSource === 'live' ? liveTenders : tenders
 
   // Extract unique categories from all tenders
   const allCategories = useMemo(() => {
