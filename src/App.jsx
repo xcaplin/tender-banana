@@ -62,6 +62,7 @@ function App() {
   const [isShortlistedOnly, setIsShortlistedOnly] = useState(false)
   const [isUrgentOnly, setIsUrgentOnly] = useState(false)
   const [includeExpiredDeadlines, setIncludeExpiredDeadlines] = useState(false) // Default: only show live/future bids
+  const [showAnalyzedOnly, setShowAnalyzedOnly] = useState(false) // Filter for analyzed tenders only
 
   // Detail panel state
   const [selectedTenderId, setSelectedTenderId] = useState(null)
@@ -245,6 +246,13 @@ function App() {
         if (!isShortlisted) return false
       }
 
+      // Analyzed tenders filter
+      if (showAnalyzedOnly && dataSource === 'live') {
+        if (!tender.ai_analyzed && tenderAnalysisStatus[tender.id] !== 'success') {
+          return false
+        }
+      }
+
       // Deadline filter (exclude expired deadlines by default, unless user includes them)
       if (!includeExpiredDeadlines) {
         const deadline = new Date(tender.deadline)
@@ -277,10 +285,18 @@ function App() {
           return new Date(a.deadline) - new Date(b.deadline)
         case 'deadline-desc':
           return new Date(b.deadline) - new Date(a.deadline)
-        case 'value-high':
-          return b.value - a.value
-        case 'value-low':
-          return a.value - b.value
+        case 'value-high': {
+          // Handle nulls/undefined - put them at the end
+          const aVal = a.value || 0
+          const bVal = b.value || 0
+          return bVal - aVal
+        }
+        case 'value-low': {
+          // Handle nulls/undefined - put them at the end
+          const aVal = a.value || 0
+          const bVal = b.value || 0
+          return aVal - bVal
+        }
         case 'alignment-desc':
           return b.sirona_fit.alignment_score - a.sirona_fit.alignment_score
         default:
@@ -289,7 +305,7 @@ function App() {
     })
 
     return sorted
-  }, [currentTenders, statusFilter, recommendationFilter, categoryFilter, sortBy, isShortlistedOnly, isUrgentOnly, includeExpiredDeadlines])
+  }, [currentTenders, statusFilter, recommendationFilter, categoryFilter, sortBy, isShortlistedOnly, isUrgentOnly, includeExpiredDeadlines, showAnalyzedOnly, dataSource, tenderAnalysisStatus])
 
   // Format currency
   const formatCurrency = (value) => {
@@ -1889,7 +1905,7 @@ function App() {
           onClick={() => setIsFilterCollapsed(!isFilterCollapsed)}
           aria-label={isFilterCollapsed ? 'Expand filters' : 'Collapse filters'}
         >
-          <span className="toggle-label">Filters & Controls</span>
+          <span className="toggle-label">Sort and filter</span>
           <span className="toggle-icon">{isFilterCollapsed ? '▼' : '▲'}</span>
         </button>
         <div className="filter-bar"
@@ -1915,22 +1931,6 @@ function App() {
           </div>
 
           <div className="filter-group">
-            <label htmlFor="recommendation-filter">Recommendation</label>
-            <select
-              id="recommendation-filter"
-              value={recommendationFilter}
-              onChange={(e) => setRecommendationFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">All Recommendations</option>
-              <option value="Strong Go">Strong Go</option>
-              <option value="Conditional Go">Conditional Go</option>
-              <option value="No Bid">No Bid</option>
-              <option value="Monitor">Monitor</option>
-            </select>
-          </div>
-
-          <div className="filter-group">
             <label htmlFor="sort-filter">Sort By</label>
             <select
               id="sort-filter"
@@ -1946,6 +1946,24 @@ function App() {
             </select>
           </div>
         </div>
+
+        {dataSource === 'live' && (
+          <div className="analyzed-filter-section">
+            <label className="analyzed-filter-checkbox">
+              <input
+                type="checkbox"
+                checked={showAnalyzedOnly}
+                onChange={(e) => setShowAnalyzedOnly(e.target.checked)}
+              />
+              <span>Show analyzed tenders only</span>
+            </label>
+            <p className="filter-help-text">
+              {showAnalyzedOnly
+                ? `Showing ${filteredAndSortedTenders.length} analyzed tender(s)`
+                : 'Show both analyzed and unanalyzed'}
+            </p>
+          </div>
+        )}
 
         <div className="category-filters">
           <label>Categories:</label>
