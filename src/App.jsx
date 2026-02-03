@@ -146,8 +146,11 @@ function App() {
 
   // Check API key status on mount
   useEffect(() => {
-    const status = checkApiStatus()
-    setApiKeyStatus(status)
+    const checkStatus = async () => {
+      const status = await checkApiStatus()
+      setApiKeyStatus(status)
+    }
+    checkStatus()
   }, [])
 
   // Save auto-analyze preference when it changes
@@ -552,14 +555,14 @@ function App() {
   }
 
   // AI Analysis functions
-  const handleSaveApiKey = () => {
+  const handleSaveApiKey = async () => {
     try {
       if (!apiKeyInput.trim()) {
         alert('Please enter an API key')
         return
       }
       setApiKey(apiKeyInput.trim())
-      const status = checkApiStatus()
+      const status = await checkApiStatus()
       setApiKeyStatus(status)
       setApiKeyInput('')
       alert('API key saved successfully!')
