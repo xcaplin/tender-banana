@@ -381,8 +381,8 @@ function App() {
   const summaryStats = useMemo(() => {
     const now = new Date()
 
-    // Total tenders in database today (all filtered opportunities)
-    const totalTendersInDatabase = filteredAndSortedTenders.length
+    // Total tenders in database today (all opportunities, not filtered)
+    const totalTendersInDatabase = currentTenders.length
 
     // Shortlisted bids - those with 'Strong Go' or 'Go' recommendations from analysed tenders
     const shortlistedBids = analysedTenders.filter(
@@ -417,7 +417,7 @@ function App() {
       urgentCount,
       totalAnalyzedValue
     }
-  }, [filteredAndSortedTenders, analysedTenders])
+  }, [currentTenders, analysedTenders])
 
   // Card click handlers
   const handleTotalActiveClick = () => {
