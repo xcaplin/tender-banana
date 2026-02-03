@@ -440,13 +440,24 @@ export const estimateAnalysisCost = (tenderCount) => {
  */
 export const checkApiStatus = async () => {
   try {
+    const key = getApiKey()
+
+    if (!key) {
+      return {
+        isReady: false,
+        message: 'API key not configured',
+        keyPreview: null
+      }
+    }
+
     const endpoint = getApiEndpoint()
 
-    // Try a simple health check (you could add a dedicated endpoint for this)
+    // API key exists and service endpoint is available
     return {
       isReady: true,
       message: 'Analysis service is ready',
-      endpoint: endpoint
+      endpoint: endpoint,
+      keyPreview: `${key.substring(0, 7)}...${key.substring(key.length - 4)}`
     }
   } catch (error) {
     return {
