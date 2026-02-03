@@ -284,6 +284,9 @@ function App() {
 
   // Format currency
   const formatCurrency = (value) => {
+    if (!value || value === 0) {
+      return 'No value data'
+    }
     if (value >= 1000000) {
       return `£${(value / 1000000).toFixed(1)}M`
     }
@@ -2088,12 +2091,14 @@ function App() {
                         >
                           {tender.status}
                         </span>
-                        <span
-                          className="recommendation-badge"
-                          style={{ backgroundColor: getRecommendationColor(tender.sirona_fit.recommendation) }}
-                        >
-                          {tender.sirona_fit.recommendation}
-                        </span>
+                        {(tender.ai_analyzed || tenderAnalysisStatus[tender.id] === 'success' || dataSource === 'sample') && (
+                          <span
+                            className="recommendation-badge"
+                            style={{ backgroundColor: getRecommendationColor(tender.sirona_fit.recommendation) }}
+                          >
+                            {tender.sirona_fit.recommendation}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <p className="tender-organization">{tender.organization}</p>
@@ -2112,12 +2117,14 @@ function App() {
                         <span className="days-until">{deadline.daysText}</span>
                       </span>
                     </div>
-                    <div className="metric-item">
-                      <label>Alignment</label>
-                      <span className="metric-value alignment-score">
-                        {tender.sirona_fit.alignment_score}% match
-                      </span>
-                    </div>
+                    {(tender.ai_analyzed || tenderAnalysisStatus[tender.id] === 'success' || dataSource === 'sample') && (
+                      <div className="metric-item">
+                        <label>Alignment</label>
+                        <span className="metric-value alignment-score">
+                          {tender.sirona_fit.alignment_score}% match
+                        </span>
+                      </div>
+                    )}
                     <div className="metric-item">
                       <label>Region</label>
                       <span className="metric-value">{tender.region}</span>
@@ -2261,7 +2268,8 @@ function App() {
                 </div>
               )}
 
-              {/* Sirona Fit Analysis Section */}
+              {/* Sirona Fit Analysis Section - Only show for analyzed tenders */}
+              {(selectedTender.ai_analyzed || tenderAnalysisStatus[selectedTender.id] === 'success' || dataSource === 'sample') && (
               <div className="detail-section sirona-fit-section">
                 <h3 className="section-heading sirona-heading">Strategic Fit Analysis</h3>
 
@@ -2333,8 +2341,10 @@ function App() {
                   </ul>
                 </div>
               </div>
+              )}
 
-              {/* Recommendation Section */}
+              {/* Recommendation Section - Only show for analyzed tenders */}
+              {(selectedTender.ai_analyzed || tenderAnalysisStatus[selectedTender.id] === 'success' || dataSource === 'sample') && (
               <div className="detail-section recommendation-section">
                 <h3 className="section-heading">Bid Decision Recommendation</h3>
 
@@ -2358,6 +2368,7 @@ function App() {
                   <p>{selectedTender.sirona_fit.rationale}</p>
                 </div>
               </div>
+              )}
             </div>
           </div>
         </>
