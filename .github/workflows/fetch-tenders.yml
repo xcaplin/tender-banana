@@ -204,4 +204,4 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           git add public/data/live-tenders.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update tender data [automated]" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update tender data [automated]" && git pull --no-edit origin main && git push)
