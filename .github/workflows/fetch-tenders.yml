@@ -28,6 +28,8 @@ jobs:
           node-version: '20'
 
       - name: Fetch and process tender data
+        env:
+          FIND_A_TENDER_API_KEY: ${{ secrets.FIND_A_TENDER_API_KEY }}
         run: |
           # Create scripts directory if it doesn't exist
           mkdir -p scripts
@@ -38,11 +40,25 @@ jobs:
           import fs from 'fs';
 
           const S3_BASE = 'https://cdp-sirsi-production-cfs-471112843276.s3.eu-west-2.amazonaws.com/Harvester-new';
+          const FIND_A_TENDER_API = 'https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages';
 
           // Fetch a URL and return text content
-          function fetchURL(url) {
+          function fetchURL(url, options = {}) {
             return new Promise((resolve, reject) => {
-              https.get(url, (res) => {
+              const urlObj = new URL(url);
+              const protocol = urlObj.protocol === 'https:' ? https : https;
+
+              const fetchOptions = {
+                hostname: urlObj.hostname,
+                path: urlObj.pathname + urlObj.search,
+                method: 'GET',
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (GitHub Actions)',
+                  ...options.headers
+                }
+              };
+
+              const req = protocol.request(fetchOptions, (res) => {
                 if (res.statusCode !== 200) {
                   resolve(null);
                   return;
@@ -51,7 +67,10 @@ jobs:
                 let data = '';
                 res.on('data', chunk => data += chunk);
                 res.on('end', () => resolve(data));
-              }).on('error', reject);
+              });
+
+              req.on('error', reject);
+              req.end();
             });
           }
 
@@ -123,7 +142,8 @@ jobs:
                   url: `https://www.contractsfinder.service.gov.uk/notice/${row['ocid']}`,
                   status: 'new',
                   categories: [],
-                  sirona_fit: null
+                  sirona_fit: null,
+                  source: 'Contracts Finder'
                 };
 
                 tenders.push(tender);
@@ -135,14 +155,134 @@ jobs:
             return tenders;
           }
 
+          // Flatten OCDS JSON to tender objects (for Find a Tender API response)
+          function flattenOCDSRelease(ocid, release) {
+            const tender = {};
+
+            // Extract tender information
+            const tenderData = release.tender || {};
+            tender.title = tenderData.title || '';
+            tender.description = tenderData.description || '';
+            tender.value = tenderData.value?.amount || 0;
+            tender.deadline = tenderData.tenderPeriod?.endDate || '';
+
+            // Extract buyer information
+            const buyerData = release.buyer || {};
+            tender.organization = buyerData.name || 'Unknown';
+            tender.region = buyerData.address?.region || '';
+
+            return {
+              id: ocid,
+              title: tender.title,
+              organization: tender.organization,
+              value: tender.value,
+              deadline: tender.deadline,
+              summary: (tender.description || '').substring(0, 200),
+              detailedDescription: tender.description || '',
+              region: tender.region,
+              url: `https://www.find-tender.service.gov.uk/notice/${ocid}`,
+              status: 'new',
+              categories: [],
+              sirona_fit: null,
+              source: 'Find a Tender'
+            };
+          }
+
+          // Fetch and process Find a Tender API data
+          async function fetchFindATender(apiKey) {
+            console.log('Fetching data from Find a Tender API...');
+            const tenders = [];
+
+            if (!apiKey) {
+              console.log('Find a Tender API key not configured, skipping Find a Tender data');
+              return tenders;
+            }
+
+            try {
+              // Fetch last 7 days of tenders (Find a Tender returns a lot of data)
+              const today = new Date();
+              const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+              const dateFrom = oneWeekAgo.toISOString().split('T')[0];
+
+              const apiUrl = `${FIND_A_TENDER_API}?dateFrom=${dateFrom}`;
+              console.log(`Fetching from Find a Tender: ${dateFrom} onwards`);
+
+              const response = await fetchURL(apiUrl, {
+                headers: { 'CDP-Api-Key': apiKey }
+              });
+
+              if (!response) {
+                console.log('Find a Tender API returned no data');
+                return tenders;
+              }
+
+              const data = JSON.parse(response);
+
+              if (!data.data || !Array.isArray(data.data)) {
+                console.log('Unexpected Find a Tender API response format');
+                return tenders;
+              }
+
+              // Process each release package
+              for (const pkg of data.data) {
+                try {
+                  if (pkg.releases && Array.isArray(pkg.releases)) {
+                    for (const release of pkg.releases) {
+                      const tender = flattenOCDSRelease(pkg.ocid, release);
+
+                      // Apply same validation as Contracts Finder
+                      if (!tender.title) continue;
+
+                      const deadline = tender.deadline ? new Date(tender.deadline) : null;
+                      if (tender.deadline && (!deadline || isNaN(deadline.getTime()))) {
+                        continue;
+                      }
+
+                      if (!tender.deadline && tender.value === 0) {
+                        continue;
+                      }
+
+                      if (!tender.organization) continue;
+
+                      tenders.push(tender);
+                    }
+                  }
+                } catch (e) {
+                  // Skip invalid records
+                }
+              }
+
+              console.log(`  Found ${tenders.length} tenders from Find a Tender`);
+            } catch (error) {
+              console.error('Error fetching Find a Tender data:', error.message);
+            }
+
+            return tenders;
+          }
+
+          // Deduplicate tenders by ocid, preferring Contracts Finder data
+          function deduplicateTenders(tendersList) {
+            const seen = new Map();
+
+            // Process tenders, keeping first occurrence of each ocid
+            for (const tender of tendersList) {
+              if (!seen.has(tender.id)) {
+                seen.set(tender.id, tender);
+              }
+            }
+
+            return Array.from(seen.values());
+          }
+
           // Main execution
           async function main() {
-            console.log('Fetching tender data from data.gov.uk...');
+            console.log('=== Tender Data Fetch Started ===\n');
 
-            const allTenders = [];
+            let allTenders = [];
             const today = new Date();
 
-            // Fetch last 30 days
+            // 1. Fetch Contracts Finder data (last 30 days)
+            console.log('1. Fetching Contracts Finder data...');
             for (let i = 0; i < 30; i++) {
               const date = new Date(today);
               date.setDate(date.getDate() - i);
@@ -153,32 +293,59 @@ jobs:
 
               const url = `${S3_BASE}/${year}-${month}/Contracts%20Finder%20OCDS%20${year}-${month}-${day}.csv`;
 
-              console.log(`Fetching ${year}-${month}-${day}...`);
+              console.log(`  Fetching ${year}-${month}-${day}...`);
               const csvText = await fetchURL(url);
 
               if (csvText) {
                 const tenders = parseCSV(csvText);
                 allTenders.push(...tenders);
-                console.log(`  Found ${tenders.length} tenders`);
+                console.log(`    Found ${tenders.length} tenders`);
               }
 
               // Small delay to be nice to the server
               await new Promise(resolve => setTimeout(resolve, 100));
             }
 
-            console.log(`Total tenders fetched: ${allTenders.length}`);
+            console.log(`\n  Contracts Finder total: ${allTenders.length} tenders\n`);
 
-            // Log breakdown of tenders with/without deadlines
-            const withDeadlines = allTenders.filter(t => t.deadline).length;
-            const withoutDeadlines = allTenders.filter(t => !t.deadline).length;
-            console.log(`Tenders with deadlines: ${withDeadlines}`);
+            // 2. Fetch Find a Tender data (last 7 days)
+            console.log('2. Fetching Find a Tender data...');
+            const apiKey = process.env.FIND_A_TENDER_API_KEY;
+            const findATenderTenders = await fetchFindATender(apiKey);
+            console.log(`\n  Find a Tender total: ${findATenderTenders.length} tenders\n`);
+
+            // 3. Combine datasets
+            console.log('3. Combining and deduplicating...');
+            allTenders.push(...findATenderTenders);
+            const deduplicated = deduplicateTenders(allTenders);
+
+            console.log(`  Total before deduplication: ${allTenders.length}`);
+            console.log(`  Total after deduplication: ${deduplicated.length}`);
+            console.log(`  Duplicates removed: ${allTenders.length - deduplicated.length}\n`);
+
+            // 4. Log statistics
+            const contractsFinderCount = deduplicated.filter(t => t.source === 'Contracts Finder').length;
+            const findATenderCount = deduplicated.filter(t => t.source === 'Find a Tender').length;
+
+            console.log('=== Dataset Summary ===');
+            console.log(`Total tenders: ${deduplicated.length}`);
+            console.log(`  - Contracts Finder: ${contractsFinderCount}`);
+            console.log(`  - Find a Tender: ${findATenderCount}`);
+
+            const withDeadlines = deduplicated.filter(t => t.deadline).length;
+            const withoutDeadlines = deduplicated.filter(t => !t.deadline).length;
+            console.log(`\nTenders with deadlines: ${withDeadlines}`);
             console.log(`Tenders without deadlines: ${withoutDeadlines}`);
 
-            // Write to file
+            // 5. Write to file
             const output = {
               generated: new Date().toISOString(),
-              count: allTenders.length,
-              tenders: allTenders
+              count: deduplicated.length,
+              sources: {
+                contractsFinder: contractsFinderCount,
+                findATender: findATenderCount
+              },
+              tenders: deduplicated
             };
 
             // Ensure public/data directory exists
@@ -187,7 +354,7 @@ jobs:
             }
 
             fs.writeFileSync('public/data/live-tenders.json', JSON.stringify(output, null, 2));
-            console.log('Written to public/data/live-tenders.json');
+            console.log('\n✓ Written to public/data/live-tenders.json');
           }
 
           main().catch(console.error);
