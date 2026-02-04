@@ -89,6 +89,11 @@ jobs:
             // UK14-UK15 are contract award notices that may still be relevant
             const openNoticeTypes = ['UK1', 'UK2', 'UK3', 'UK4', 'UK5', 'UK14', 'UK15'];
 
+            // Track notice types found for debugging
+            const noticeTypeCounts = {};
+            let totalWithTitle = 0;
+            let totalMatched = 0;
+
             for (let i = 1; i < lines.length; i++) {
               try {
                 const values = parseCSVLine(lines[i]);
@@ -98,12 +103,22 @@ jobs:
                 const title = row['releases/0/tender/title'] || row['tender/title'] || '';
                 if (!title) continue;
 
+                totalWithTitle++;
+
                 // Filter by notice type - only include open tender opportunities
                 const noticeType = row['releases/0/tag'] || row['tag'] || '';
+
+                // Track all notice types found
+                if (noticeType) {
+                  noticeTypeCounts[noticeType] = (noticeTypeCounts[noticeType] || 0) + 1;
+                }
+
                 if (!openNoticeTypes.some(type => noticeType.includes(type))) {
                   // Skip notices that are not open tender opportunities
                   continue;
                 }
+
+                totalMatched++;
 
                 const tender = {
                   id: row['ocid'] || `tender-${i}`,
@@ -125,6 +140,9 @@ jobs:
                 // Skip invalid rows
               }
             }
+
+            console.log(`Notice type breakdown:`, noticeTypeCounts);
+            console.log(`Total with title: ${totalWithTitle}, Matched filter: ${totalMatched}`);
 
             return tenders;
           }
