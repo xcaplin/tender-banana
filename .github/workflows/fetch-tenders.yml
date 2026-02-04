@@ -93,12 +93,30 @@ jobs:
                 const title = row['releases/0/tender/title'] || row['tender/title'] || '';
                 if (!title) continue;
 
+                // Validate deadline - must be a parseable date
+                const deadlineStr = row['releases/0/tender/tenderPeriod/endDate'] || row['tender/tenderPeriod/endDate'] || '';
+                const deadline = deadlineStr ? new Date(deadlineStr) : null;
+                if (deadlineStr && (!deadline || isNaN(deadline.getTime()))) {
+                  // Skip records with invalid deadline format
+                  continue;
+                }
+
+                // Skip records that have no deadline AND no value (likely internal records/subcontracts)
+                const value = parseFloat(row['releases/0/tender/value/amount'] || row['tender/value/amount'] || 0);
+                if (!deadlineStr && value === 0) {
+                  continue;
+                }
+
+                // Require at least some buyer information
+                const buyer = row['releases/0/buyer/name'] || row['buyer/name'] || '';
+                if (!buyer) continue;
+
                 const tender = {
                   id: row['ocid'] || `tender-${i}`,
                   title: title,
-                  organization: row['releases/0/buyer/name'] || row['buyer/name'] || 'Unknown',
-                  value: parseFloat(row['releases/0/tender/value/amount'] || row['tender/value/amount'] || 0),
-                  deadline: row['releases/0/tender/tenderPeriod/endDate'] || row['tender/tenderPeriod/endDate'] || '',
+                  organization: buyer,
+                  value: value,
+                  deadline: deadlineStr,
                   summary: (row['releases/0/tender/description'] || row['tender/description'] || '').substring(0, 200),
                   detailedDescription: row['releases/0/tender/description'] || row['tender/description'] || '',
                   region: row['releases/0/buyer/address/region'] || row['buyer/address/region'] || '',
