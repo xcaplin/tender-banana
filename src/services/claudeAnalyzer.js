@@ -94,6 +94,37 @@ const validateApiKey = () => {
 }
 
 /**
+ * Check if a tender is irrelevant and should be marked as "no bid"
+ * Irrelevant tenders include those with passed deadlines or other disqualifying factors
+ * @param {Object} tender - Tender object to check
+ * @returns {Object|null} Returns a "no bid" assessment if irrelevant, or null if relevant
+ */
+const checkTenderIrrelevance = (tender) => {
+  // Check if deadline has passed
+  if (tender.deadline) {
+    const deadlineDate = new Date(tender.deadline)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    if (deadlineDate < today) {
+      // Deadline has passed - mark as no bid
+      return {
+        alignment_score: 0,
+        rationale: 'This tender has an expired deadline and is no longer available for bidding.',
+        win_themes: [],
+        competitors: [],
+        weak_spots: ['Deadline has passed'],
+        recommendation: 'No Bid',
+        categories: []
+      }
+    }
+  }
+
+  // All checks passed - tender is relevant
+  return null
+}
+
+/**
  * Build the analysis prompt for Claude
  * @param {Object} tender - Tender object to analyze
  * @returns {string} Formatted prompt for Claude
@@ -285,6 +316,19 @@ const callClaudeAPI = async (prompt) => {
 export const analyzeTenderWithClaude = async (tender) => {
   try {
     console.log(`Analyzing tender: ${tender.title}`)
+
+    // Check if tender is irrelevant (e.g., expired deadline)
+    const irrelevanceAssessment = checkTenderIrrelevance(tender)
+    if (irrelevanceAssessment) {
+      console.log(`Tender marked as no bid due to irrelevance: ${tender.title}`)
+      return {
+        ...tender,
+        sirona_fit: irrelevanceAssessment,
+        ai_analyzed: true,
+        analyzed_at: new Date().toISOString(),
+        irrelevance_reason: 'Tender does not meet bidding criteria (e.g., deadline passed)'
+      }
+    }
 
     // Build prompt
     const prompt = buildAnalysisPrompt(tender)

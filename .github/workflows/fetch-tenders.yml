@@ -84,9 +84,6 @@ jobs:
             const headers = parseCSVLine(lines[0]);
             const tenders = [];
 
-            // Temporarily fetch ALL tenders to see what notice types exist
-            const noticeTypeExamples = {};
-
             for (let i = 1; i < lines.length; i++) {
               try {
                 const values = parseCSVLine(lines[i]);
@@ -95,16 +92,6 @@ jobs:
 
                 const title = row['releases/0/tender/title'] || row['tender/title'] || '';
                 if (!title) continue;
-
-                // Capture examples of notice types we find
-                const noticeType = row['releases/0/tag'] || row['tag'] || 'NO_TAG';
-                if (!noticeTypeExamples[noticeType]) {
-                  noticeTypeExamples[noticeType] = {
-                    count: 0,
-                    example: { title, noticeType }
-                  };
-                }
-                noticeTypeExamples[noticeType].count++;
 
                 const tender = {
                   id: row['ocid'] || `tender-${i}`,
@@ -126,14 +113,6 @@ jobs:
                 // Skip invalid rows
               }
             }
-
-            // Log notice types for debugging
-            console.log('=== NOTICE TYPE BREAKDOWN ===');
-            Object.entries(noticeTypeExamples).forEach(([type, data]) => {
-              console.log(`  ${type}: ${data.count}`);
-            });
-            console.log(`Total tenders in this batch: ${tenders.length}`);
-            console.log('=============================');
 
             return tenders;
           }
