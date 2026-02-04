@@ -84,6 +84,11 @@ jobs:
             const headers = parseCSVLine(lines[0]);
             const tenders = [];
 
+            // Notice types that indicate open tender opportunities
+            // UK1-UK5 are OJEU/FIND a Tender notices for supplies/services/works
+            // UK14-UK15 are contract award notices that may still be relevant
+            const openNoticeTypes = ['UK1', 'UK2', 'UK3', 'UK4', 'UK5', 'UK14', 'UK15'];
+
             for (let i = 1; i < lines.length; i++) {
               try {
                 const values = parseCSVLine(lines[i]);
@@ -92,6 +97,13 @@ jobs:
 
                 const title = row['releases/0/tender/title'] || row['tender/title'] || '';
                 if (!title) continue;
+
+                // Filter by notice type - only include open tender opportunities
+                const noticeType = row['releases/0/tag'] || row['tag'] || '';
+                if (!openNoticeTypes.some(type => noticeType.includes(type))) {
+                  // Skip notices that are not open tender opportunities
+                  continue;
+                }
 
                 const tender = {
                   id: row['ocid'] || `tender-${i}`,
@@ -149,6 +161,12 @@ jobs:
             }
 
             console.log(`Total tenders fetched: ${allTenders.length}`);
+
+            // Log breakdown of tenders with/without deadlines
+            const withDeadlines = allTenders.filter(t => t.deadline).length;
+            const withoutDeadlines = allTenders.filter(t => !t.deadline).length;
+            console.log(`Tenders with deadlines: ${withDeadlines}`);
+            console.log(`Tenders without deadlines: ${withoutDeadlines}`);
 
             // Write to file
             const output = {
