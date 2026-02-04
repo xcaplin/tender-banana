@@ -84,15 +84,8 @@ jobs:
             const headers = parseCSVLine(lines[0]);
             const tenders = [];
 
-            // Notice types that indicate open tender opportunities
-            // UK1-UK5 are OJEU/FIND a Tender notices for supplies/services/works
-            // UK14-UK15 are contract award notices that may still be relevant
-            const openNoticeTypes = ['UK1', 'UK2', 'UK3', 'UK4', 'UK5', 'UK14', 'UK15'];
-
-            // Track notice types found for debugging
-            const noticeTypeCounts = {};
-            let totalWithTitle = 0;
-            let totalMatched = 0;
+            // Temporarily fetch ALL tenders to see what notice types exist
+            const noticeTypeExamples = {};
 
             for (let i = 1; i < lines.length; i++) {
               try {
@@ -103,22 +96,15 @@ jobs:
                 const title = row['releases/0/tender/title'] || row['tender/title'] || '';
                 if (!title) continue;
 
-                totalWithTitle++;
-
-                // Filter by notice type - only include open tender opportunities
-                const noticeType = row['releases/0/tag'] || row['tag'] || '';
-
-                // Track all notice types found
-                if (noticeType) {
-                  noticeTypeCounts[noticeType] = (noticeTypeCounts[noticeType] || 0) + 1;
+                // Capture examples of notice types we find
+                const noticeType = row['releases/0/tag'] || row['tag'] || 'NO_TAG';
+                if (!noticeTypeExamples[noticeType]) {
+                  noticeTypeExamples[noticeType] = {
+                    count: 0,
+                    example: { title, noticeType }
+                  };
                 }
-
-                if (!openNoticeTypes.some(type => noticeType.includes(type))) {
-                  // Skip notices that are not open tender opportunities
-                  continue;
-                }
-
-                totalMatched++;
+                noticeTypeExamples[noticeType].count++;
 
                 const tender = {
                   id: row['ocid'] || `tender-${i}`,
@@ -141,8 +127,13 @@ jobs:
               }
             }
 
-            console.log(`Notice type breakdown:`, noticeTypeCounts);
-            console.log(`Total with title: ${totalWithTitle}, Matched filter: ${totalMatched}`);
+            // Log notice types for debugging
+            console.log('=== NOTICE TYPE BREAKDOWN ===');
+            Object.entries(noticeTypeExamples).forEach(([type, data]) => {
+              console.log(`  ${type}: ${data.count}`);
+            });
+            console.log(`Total tenders in this batch: ${tenders.length}`);
+            console.log('=============================');
 
             return tenders;
           }
