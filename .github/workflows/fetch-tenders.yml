@@ -28,8 +28,6 @@ jobs:
           node-version: '20'
 
       - name: Fetch and process tender data
-        env:
-          FIND_A_TENDER_API_KEY: ${{ secrets.FIND_A_TENDER_API_KEY }}
         run: |
           # Create scripts directory if it doesn't exist
           mkdir -p scripts
@@ -188,71 +186,91 @@ jobs:
             };
           }
 
-          // Fetch and process Find a Tender API data
-          async function fetchFindATender(apiKey) {
+          // Fetch and process Find a Tender API data with pagination
+          async function fetchFindATender() {
             console.log('Fetching data from Find a Tender API...');
             const tenders = [];
 
-            if (!apiKey) {
-              console.log('Find a Tender API key not configured, skipping Find a Tender data');
-              return tenders;
-            }
-
             try {
-              // Fetch last 7 days of tenders (Find a Tender returns a lot of data)
+              // Fetch tenders updated in the last 24 hours, filtered to 'tender' stage (open opportunities)
               const today = new Date();
-              const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-              const dateFrom = oneWeekAgo.toISOString().split('T')[0];
+              const oneDayAgo = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+              const updatedFrom = oneDayAgo.toISOString();
 
-              const apiUrl = `${FIND_A_TENDER_API}?dateFrom=${dateFrom}`;
-              console.log(`Fetching from Find a Tender: ${dateFrom} onwards`);
+              let cursor = null;
+              let hasMore = true;
+              let pageCount = 0;
 
-              const response = await fetchURL(apiUrl, {
-                headers: { 'CDP-Api-Key': apiKey }
-              });
+              while (hasMore) {
+                pageCount++;
+                let apiUrl = `${FIND_A_TENDER_API}?updatedFrom=${encodeURIComponent(updatedFrom)}&stages=tender&limit=100`;
+                if (cursor) {
+                  apiUrl += `&cursor=${encodeURIComponent(cursor)}`;
+                }
 
-              if (!response) {
-                console.log('Find a Tender API returned no data');
-                return tenders;
-              }
+                console.log(`  Fetching page ${pageCount}...`);
+                const response = await fetchURL(apiUrl);
 
-              const data = JSON.parse(response);
+                if (!response) {
+                  console.log('  Find a Tender API returned no data');
+                  break;
+                }
 
-              if (!data.data || !Array.isArray(data.data)) {
-                console.log('Unexpected Find a Tender API response format');
-                return tenders;
-              }
-
-              // Process each release package
-              for (const pkg of data.data) {
                 try {
-                  if (pkg.releases && Array.isArray(pkg.releases)) {
-                    for (const release of pkg.releases) {
-                      const tender = flattenOCDSRelease(pkg.ocid, release);
+                  const data = JSON.parse(response);
 
-                      // Apply same validation as Contracts Finder
-                      if (!tender.title) continue;
+                  if (!data.data || !Array.isArray(data.data)) {
+                    console.log('  Unexpected Find a Tender API response format');
+                    break;
+                  }
 
-                      const deadline = tender.deadline ? new Date(tender.deadline) : null;
-                      if (tender.deadline && (!deadline || isNaN(deadline.getTime()))) {
-                        continue;
+                  // Process each release package
+                  for (const pkg of data.data) {
+                    try {
+                      if (pkg.releases && Array.isArray(pkg.releases)) {
+                        for (const release of pkg.releases) {
+                          const tender = flattenOCDSRelease(pkg.ocid, release);
+
+                          // Apply same validation as Contracts Finder
+                          if (!tender.title) continue;
+
+                          const deadline = tender.deadline ? new Date(tender.deadline) : null;
+                          if (tender.deadline && (!deadline || isNaN(deadline.getTime()))) {
+                            continue;
+                          }
+
+                          if (!tender.deadline && tender.value === 0) {
+                            continue;
+                          }
+
+                          if (!tender.organization) continue;
+
+                          tenders.push(tender);
+                        }
                       }
-
-                      if (!tender.deadline && tender.value === 0) {
-                        continue;
-                      }
-
-                      if (!tender.organization) continue;
-
-                      tenders.push(tender);
+                    } catch (e) {
+                      // Skip invalid records
                     }
                   }
-                } catch (e) {
-                  // Skip invalid records
+
+                  console.log(`    Found ${data.data.length} release packages on this page`);
+
+                  // Handle pagination
+                  if (data.links && data.links.next) {
+                    cursor = data.links.next;
+                  } else {
+                    hasMore = false;
+                  }
+                } catch (parseError) {
+                  console.error('Error parsing Find a Tender response:', parseError.message);
+                  break;
                 }
+
+                // Be respectful with API calls
+                await new Promise(resolve => setTimeout(resolve, 500));
               }
 
-              console.log(`  Found ${tenders.length} tenders from Find a Tender`);
+              console.log(`  Total tenders from Find a Tender: ${tenders.length}`);
             } catch (error) {
               console.error('Error fetching Find a Tender data:', error.message);
             }
@@ -308,10 +326,9 @@ jobs:
 
             console.log(`\n  Contracts Finder total: ${allTenders.length} tenders\n`);
 
-            // 2. Fetch Find a Tender data (last 7 days)
+            // 2. Fetch Find a Tender data (updated in last 24 hours, stage=tender only)
             console.log('2. Fetching Find a Tender data...');
-            const apiKey = process.env.FIND_A_TENDER_API_KEY;
-            const findATenderTenders = await fetchFindATender(apiKey);
+            const findATenderTenders = await fetchFindATender();
             console.log(`\n  Find a Tender total: ${findATenderTenders.length} tenders\n`);
 
             // 3. Combine datasets
