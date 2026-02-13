@@ -192,10 +192,10 @@ jobs:
             const tenders = [];
 
             try {
-              // Fetch tenders updated in the last 24 hours, filtered to 'tender' stage (open opportunities)
+              // Fetch tenders updated in the last 90 days, filtered to 'tender' stage (open opportunities)
               const today = new Date();
-              const oneDayAgo = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-              const updatedFrom = oneDayAgo.toISOString();
+              const ninetyDaysAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+              const updatedFrom = ninetyDaysAgo.toISOString();
 
               let cursor = null;
               let hasMore = true;
