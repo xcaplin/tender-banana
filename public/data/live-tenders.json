@@ -1,11 +1,41 @@
 {
-  "generated": "2026-02-22T07:31:01.184Z",
+  "generated": "2026-02-23T07:48:28.136Z",
   "count": 614,
   "sources": {
     "contractsFinder": 614,
     "findATender": 0
   },
   "tenders": [
+    {
+      "id": "tender-1",
+      "title": "Circularity Scaling (715766480)",
+      "organization": "Ministry of Defence",
+      "value": 298611,
+      "deadline": "2026-02-17T23:59:00Z",
+      "summary": "notification of contract awarded under CCS MCF4 framework",
+      "detailedDescription": "notification of contract awarded under CCS MCF4 framework",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
+    {
+      "id": "tender-2",
+      "title": "Systems Development and Integration Management Support",
+      "organization": "NHS Blood and Transplant",
+      "value": 700000,
+      "deadline": "2026-01-23T15:00:00Z",
+      "summary": "Provision of support services for NHSBT's systems development and application integration services.",
+      "detailedDescription": "Provision of support services for NHSBT's systems development and application integration services.",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
     {
       "id": "tender-16",
       "title": "Supply of HP Probook x360 435 G10 Laptops (x150)",
@@ -1942,21 +1972,6 @@
       "source": "Contracts Finder"
     },
     {
-      "id": "tender-1",
-      "title": "Homes England - Property and Financial Services Framework 2022 - 2026 - Penwood Developments Ltd, Cowes",
-      "organization": "Homes England (the name adopted by the Homes and Communities Agency)",
-      "value": 20725,
-      "deadline": "2026-01-15T17:00:00Z",
-      "summary": "Procurement of monitoring surveyor for 15 homes in Cowes, Isle of Wight",
-      "detailedDescription": "Procurement of monitoring surveyor for 15 homes in Cowes, Isle of Wight",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
       "id": "tender-6",
       "title": "Architecture and Proof of Value for Real-time Data Streaming",
       "organization": "Ministry of Justice",
@@ -3599,21 +3614,6 @@
       "deadline": "2025-10-29T12:00:00Z",
       "summary": "Percutaneous coronary intervention consumables for Cardiology - Primarily Stents and Balloons. Since 2012, Gloucestershire Hospitals NHS Foundation Trust (GHFT) has partnered with the Peninsula Purcha",
       "detailedDescription": "Percutaneous coronary intervention consumables for Cardiology - Primarily Stents and Balloons. Since 2012, Gloucestershire Hospitals NHS Foundation Trust (GHFT) has partnered with the Peninsula Purchasing and Supply Alliance (PPSA) to support its Cardiology consumables strategy. As part of this process, the PPSA conducted a mini competition under the framework agreement on behalf of seven participating trusts. Estimated Contract Value: Initial Term 2 years: £224,048 (inc VAT). Max Term 4 years: £482,824 (inc VAT). Contract Duration: Initial Term: 15/12/2025-14/12/2027. Max Extension End Date: 14/12/2029, 2 year extension option (1 + 1). The 2015 framework this is applicable to is: 2021/S 000-017565 - Interventional Cardiology, Interventional Radiology and Interventional Neuroradiology, Cardiac Rhythm Management and Electrophysiology.",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-2",
-      "title": "C3999 - Executive Search",
-      "organization": "Financial Conduct Authority (FCA)",
-      "value": 54000,
-      "deadline": "2026-01-01T12:00:00Z",
-      "summary": "Provision of Executive Search",
-      "detailedDescription": "Provision of Executive Search",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
