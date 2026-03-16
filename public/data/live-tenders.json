@@ -1,11 +1,26 @@
 {
-  "generated": "2026-03-15T07:39:23.649Z",
+  "generated": "2026-03-16T08:03:33.705Z",
   "count": 583,
   "sources": {
     "contractsFinder": 583,
     "findATender": 0
   },
   "tenders": [
+    {
+      "id": "tender-1",
+      "title": "CyberArk (PAM)",
+      "organization": "Department for Work and Pensions",
+      "value": 6027058.3,
+      "deadline": "2026-03-14T12:00:00Z",
+      "summary": "Contract for PAM Licences - this will be a 1+1+1 Contract supporting this requirement",
+      "detailedDescription": "Contract for PAM Licences - this will be a 1+1+1 Contract supporting this requirement",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
     {
       "id": "tender-28",
       "title": "Salesforce and Website Address Checker",
@@ -989,21 +1004,6 @@
       "deadline": "2026-03-12T12:00:00Z",
       "summary": "Carryout the value-for-money assessment for the two contracts (Zebra crossing works and Highway resurfacing)",
       "detailedDescription": "Carryout the value-for-money assessment for the two contracts (Zebra crossing works and Highway resurfacing)",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-1",
-      "title": "CGH PMU CCTV",
-      "organization": "Gloucestershire Hospitals NHS Foundation Trust",
-      "value": 0.01,
-      "deadline": "2026-03-11T12:00:00Z",
-      "summary": "carry out the supply installation and commissioning of extended CCTV cameras coverage of carpark and cabins to cover blind spots",
-      "detailedDescription": "carry out the supply installation and commissioning of extended CCTV cameras coverage of carpark and cabins to cover blind spots",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
