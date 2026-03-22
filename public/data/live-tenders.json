@@ -1,8 +1,8 @@
 {
-  "generated": "2026-03-21T07:28:20.675Z",
-  "count": 590,
+  "generated": "2026-03-22T07:33:36.384Z",
+  "count": 587,
   "sources": {
-    "contractsFinder": 590,
+    "contractsFinder": 587,
     "findATender": 0
   },
   "tenders": [
@@ -8804,51 +8804,6 @@
       "deadline": "2026-02-19T12:00:00Z",
       "summary": "Purchase of Dental Chair",
       "detailedDescription": "Purchase of Dental Chair",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-89",
-      "title": "TADCASTER - INTERNAL ALTERATIONS",
-      "organization": "North Yorkshire Police",
-      "value": 49838.66,
-      "deadline": "2026-01-02T17:00:00Z",
-      "summary": "Tadcaster internal alterations - call off from West Yorkshire Police Framework for Estate Works",
-      "detailedDescription": "Tadcaster internal alterations - call off from West Yorkshire Police Framework for Estate Works",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-391",
-      "title": "Completion of works to Linacre Court W6 including new community hall",
-      "organization": "London Borough of Hammersmith & Fulham",
-      "value": 438013,
-      "deadline": "2025-07-24T17:00:00+01:00",
-      "summary": "Completion of major works to Linacre Court W6",
-      "detailedDescription": "Completion of major works to Linacre Court W6",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-432",
-      "title": "Darwen Market and Darwen Library and Theatre",
-      "organization": "Blackburn With Darwen Borough Council",
-      "value": 20000000,
-      "deadline": "2025-11-26T12:00:00Z",
-      "summary": "Contract award notice -  Blackburn with Darwen Borough Council have secured Town Deal Funding to help regenerate the centre of Darwen, with the Market and Library Theatre projects being central to the",
-      "detailedDescription": "Contract award notice -  Blackburn with Darwen Borough Council have secured Town Deal Funding to help regenerate the centre of Darwen, with the Market and Library Theatre projects being central to the masterplan.",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
