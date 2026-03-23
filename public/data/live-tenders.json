@@ -1,11 +1,41 @@
 {
-  "generated": "2026-03-22T07:33:36.384Z",
+  "generated": "2026-03-23T07:57:33.335Z",
   "count": 587,
   "sources": {
     "contractsFinder": 587,
     "findATender": 0
   },
   "tenders": [
+    {
+      "id": "tender-9",
+      "title": "Newcastle Infrastructure Programme",
+      "organization": "NHS Blood and Transplant (Filton, Bristol)",
+      "value": 339792,
+      "deadline": "2026-02-06T12:00:00Z",
+      "summary": "Pre-construction surveys.",
+      "detailedDescription": "Pre-construction surveys.",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
+    {
+      "id": "tender-10",
+      "title": "Network Access Control",
+      "organization": "NHS Blood and Transplant (Filton, Bristol)",
+      "value": 1646075.09,
+      "deadline": "2026-02-09T12:00:00Z",
+      "summary": "The solution provides centralised, policy-based network access control across wired, wireless, and VPN environments. It enables secure authentication, authorisation, and accounting of users and device",
+      "detailedDescription": "The solution provides centralised, policy-based network access control across wired, wireless, and VPN environments. It enables secure authentication, authorisation, and accounting of users and devices, integrating with directory services and security tooling. The solution supports zero trust principles by enforcing context-aware access policies and continuous compliance monitoring.",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
     {
       "id": "tender-1",
       "title": "Media Monitoring Services",
@@ -1702,21 +1732,6 @@
       "source": "Contracts Finder"
     },
     {
-      "id": "tender-10",
-      "title": "West London College student computers",
-      "organization": "West London College",
-      "value": 300200,
-      "deadline": "2026-03-27T16:00:00Z",
-      "summary": "The College intends to procure a quantity of Windows 11 PCs as part of its ongoing hardware refresh programme.",
-      "detailedDescription": "The College intends to procure a quantity of Windows 11 PCs as part of its ongoing hardware refresh programme.",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
       "id": "tender-14",
       "title": "EPP0202 Security and Concierge Services",
       "organization": "Essex County Council",
@@ -2249,21 +2264,6 @@
       "deadline": "2026-03-22T12:00:00Z",
       "summary": "Solar PV Panels for Various Sites - Installation - GHC",
       "detailedDescription": "Solar PV Panels for Various Sites - Installation - GHC",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-9",
-      "title": "MEAS Round Fields Managed Realignment, ECC Project Manager & Cost Consultant",
-      "organization": "Defra",
-      "value": 71087.11,
-      "deadline": "2026-01-16T12:00:00Z",
-      "summary": "Award of Contract for MEAS Round Fields Managed Realignment, ECC Project Manager & Cost Consultant",
-      "detailedDescription": "Award of Contract for MEAS Round Fields Managed Realignment, ECC Project Manager & Cost Consultant",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
