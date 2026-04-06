@@ -1,11 +1,41 @@
 {
-  "generated": "2026-04-05T07:50:56.100Z",
+  "generated": "2026-04-06T08:19:00.246Z",
   "count": 586,
   "sources": {
     "contractsFinder": 586,
     "findATender": 0
   },
   "tenders": [
+    {
+      "id": "tender-1",
+      "title": "Additional Resource for Special Projects",
+      "organization": "FCA",
+      "value": 266400,
+      "deadline": "2026-03-02T12:00:00Z",
+      "summary": "This contract is for the provision of a procurement manager to support in the delivery of complex procurement projects.",
+      "detailedDescription": "This contract is for the provision of a procurement manager to support in the delivery of complex procurement projects.",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
+    {
+      "id": "tender-2",
+      "title": "DUIE DIS & PHI Senior Data Scientist",
+      "organization": "FCA",
+      "value": 189000,
+      "deadline": "2026-03-02T12:00:00Z",
+      "summary": "Provision of senior data scientist resource to support DUIE work programmes.",
+      "detailedDescription": "Provision of senior data scientist resource to support DUIE work programmes.",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
     {
       "id": "tender-20",
       "title": "Consultancy plus contract R Reed (Local SEND Reform Plan Consultancy)",
@@ -2677,21 +2707,6 @@
       "source": "Contracts Finder"
     },
     {
-      "id": "tender-1",
-      "title": "MPSC Pharmacy Catalogue Support Renewal 2026-27",
-      "organization": "NHS England",
-      "value": 73399.55,
-      "deadline": "2026-03-31T12:00:00+01:00",
-      "summary": "MPSC Pharmacy Catalogue Support Renewal 2026-27",
-      "detailedDescription": "MPSC Pharmacy Catalogue Support Renewal 2026-27",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
       "id": "tender-8",
       "title": "BWV Support & Maintenance",
       "organization": "Cambridgeshire Constabulary",
@@ -4199,21 +4214,6 @@
       "deadline": "2026-03-26T12:00:00Z",
       "summary": "External Consultancy for MaPs AI Roadmap.",
       "detailedDescription": "External Consultancy for MaPs AI Roadmap.",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-2",
-      "title": "Award of a Call-Off Contract under the Prison Education Dynamic Purchasing System for Rail Track Awareness Training for Prisoners at HMP Send",
-      "organization": "Ministry of Justice",
-      "value": 12462.84,
-      "deadline": "2026-01-14T15:00:00Z",
-      "summary": "Award of a Call-Off Contract under the Prison Education Dynamic Purchasing System for Rail Track Awareness Training for Prisoners at HMP Send",
-      "detailedDescription": "Award of a Call-Off Contract under the Prison Education Dynamic Purchasing System for Rail Track Awareness Training for Prisoners at HMP Send",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
