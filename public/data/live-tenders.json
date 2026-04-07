@@ -1,11 +1,26 @@
 {
-  "generated": "2026-04-06T08:19:00.246Z",
+  "generated": "2026-04-07T08:06:53.214Z",
   "count": 586,
   "sources": {
     "contractsFinder": 586,
     "findATender": 0
   },
   "tenders": [
+    {
+      "id": "tender-17",
+      "title": "Downs to the Sea - Ferry Fields Predator Exclusion Fence",
+      "organization": "ROYAL SOCIETY FOR THE PROTECTION OF BIRDS",
+      "value": 50000,
+      "deadline": "2026-04-13T09:00:00+01:00",
+      "summary": "Downs to the Sea is a partnership project led by the South Downs National Park and funded by the National Lottery Herritage Fund. Last year groundworks were carried out at Pagham Ferry Field. This yea",
+      "detailedDescription": "Downs to the Sea is a partnership project led by the South Downs National Park and funded by the National Lottery Herritage Fund. Last year groundworks were carried out at Pagham Ferry Field. This year we will be installing a predator exclusion fence to protect ground nesting birds from Fox and Badger predation.",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
     {
       "id": "tender-1",
       "title": "Additional Resource for Special Projects",
@@ -7724,21 +7739,6 @@
       "deadline": "2025-10-01T12:00:00+01:00",
       "summary": "Award of contract for the upgrade of the car key cabinet management system.",
       "detailedDescription": "Award of contract for the upgrade of the car key cabinet management system.",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-17",
-      "title": "HMPO Modernisation, Support & Maintenance of Registration Online (RON) Application",
-      "organization": "Home Office",
-      "value": 1700000,
-      "deadline": "2026-01-31T16:00:00Z",
-      "summary": "This notice is for the contract award of HMPO Modernisation, Support & Maintenance of Registration Online (RON) Application. Contract Description. The contract is to support the migration of an aging ",
-      "detailedDescription": "This notice is for the contract award of HMPO Modernisation, Support & Maintenance of Registration Online (RON) Application. Contract Description. The contract is to support the migration of an aging proprietary application used for recording life events within the Civil Registration system in England and Wales, facilitating the execution of the Registrar General's duties.  he proposed migration platform involves transitioning from an on-premises environment to either a cloud-based solution or a Home Office Data Centre-hosted environment. The application comprises a variety of technologies, including MS Office, Red Hat Linux, Java, WildFly, as well as proprietary components.",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
