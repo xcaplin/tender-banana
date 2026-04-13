@@ -1,11 +1,26 @@
 {
-  "generated": "2026-04-12T07:58:49.498Z",
+  "generated": "2026-04-13T08:58:10.762Z",
   "count": 592,
   "sources": {
     "contractsFinder": 592,
     "findATender": 0
   },
   "tenders": [
+    {
+      "id": "tender-1",
+      "title": "Award of a Call-Off Contract under the Prison Education Dynamic Purchasing System for Forklift truck training courses for Prisoners at HMP Ford",
+      "organization": "Ministry of Justice",
+      "value": 18000,
+      "deadline": "2026-02-06T15:00:00Z",
+      "summary": "Award of a Call-Off Contract under the Prison Education Dynamic Purchasing System for Forklift truck training courses for Prisoners at HMP Ford. Prisoners shall be trained and accredited with Counterb",
+      "detailedDescription": "Award of a Call-Off Contract under the Prison Education Dynamic Purchasing System for Forklift truck training courses for Prisoners at HMP Ford. Prisoners shall be trained and accredited with Counterbalance and Telescopic Forklift Truck licences",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
     {
       "id": "tender-21",
       "title": "CONTRACT TO UNDERTAKE TOPOGRAPHIC SURVEYS OF OPERATIONAL WASTE FACILITIES",
@@ -2189,21 +2204,6 @@
       "deadline": "2025-06-16T12:00:00+01:00",
       "summary": "East and North Hertfordshire NHS Trust award for ORBIS Phase 2 - Licence via LPP Framework for Clinical Digital Solutions.",
       "detailedDescription": "East and North Hertfordshire NHS Trust award for ORBIS Phase 2 - Licence via LPP Framework for Clinical Digital Solutions.",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-1",
-      "title": "Technical Support (TOEX)",
-      "organization": "Norfolk Constabulary",
-      "value": 5327040,
-      "deadline": "2026-03-16T12:00:00Z",
-      "summary": "Cloud specialism and service support for the TOEX Capabilities Environment and Data Platform.",
-      "detailedDescription": "Cloud specialism and service support for the TOEX Capabilities Environment and Data Platform.",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
