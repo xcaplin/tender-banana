@@ -1,11 +1,26 @@
 {
-  "generated": "2026-04-26T08:13:12.030Z",
+  "generated": "2026-04-27T09:13:11.238Z",
   "count": 623,
   "sources": {
     "contractsFinder": 623,
     "findATender": 0
   },
   "tenders": [
+    {
+      "id": "tender-6",
+      "title": "Bulk Fuel",
+      "organization": "Gloucestershire County Council",
+      "value": 240000,
+      "deadline": "2026-03-18T12:00:00Z",
+      "summary": "Bulk fuel from CCS framework",
+      "detailedDescription": "Bulk fuel from CCS framework",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
     {
       "id": "tender-26",
       "title": "C433397 - Cognizant - Project Management Programme Management Delivery Management Applications  Engineering Services",
@@ -614,21 +629,6 @@
       "deadline": "2026-03-30T12:00:00+01:00",
       "summary": "Annual care reviews for service users who have commissioned care packages in place and are eligible for S117 aftercare under the Mental Health Act 1983. This ensures that care continues to be appropri",
       "detailedDescription": "Annual care reviews for service users who have commissioned care packages in place and are eligible for S117 aftercare under the Mental Health Act 1983. This ensures that care continues to be appropriate to meet needs and will involve reductions to packages where overprovisioning of support is identified.",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-6",
-      "title": "Electrical Works - Fieldway Compliance Ltd",
-      "organization": "Paradigm Housing Group",
-      "value": 221528.52,
-      "deadline": "2026-03-10T23:59:00Z",
-      "summary": "Full LED upgrade to Glory Park offices",
-      "detailedDescription": "Full LED upgrade to Glory Park offices",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
