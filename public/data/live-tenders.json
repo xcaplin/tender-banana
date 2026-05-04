@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-03T08:29:39.468Z",
+  "generated": "2026-05-04T09:12:07.865Z",
   "count": 603,
   "sources": {
     "contractsFinder": 603,
@@ -8,12 +8,12 @@
   "tenders": [
     {
       "id": "tender-1",
-      "title": "Batch 758 - Leeds and Wakefield District - July 2026 to May 2027/Jan 2028",
-      "organization": "West Yorkshire Combined Authority",
-      "value": 0,
-      "deadline": "2026-05-26T10:00:00+01:00",
-      "summary": "Batch 758 - Leeds and Wakefield District - July 2026 to May 2027/Jan 2028  Seeking contracts to cover withdrawn services from Yorkshire Travel Group Ltd",
-      "detailedDescription": "Batch 758 - Leeds and Wakefield District - July 2026 to May 2027/Jan 2028  Seeking contracts to cover withdrawn services from Yorkshire Travel Group Ltd",
+      "title": "TB Works Trust PMO",
+      "organization": "Gloucestershire Hospitals Subsidiary Company Ltd.",
+      "value": 48225,
+      "deadline": "2026-05-01T12:00:00+01:00",
+      "summary": "Programme Management Office (PMO) consultancy services to support the Tower Essential Works Programme.",
+      "detailedDescription": "Programme Management Office (PMO) consultancy services to support the Tower Essential Works Programme.",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
