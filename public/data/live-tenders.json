@@ -1,11 +1,26 @@
 {
-  "generated": "2026-06-07T09:55:54.110Z",
+  "generated": "2026-06-08T11:49:47.390Z",
   "count": 577,
   "sources": {
     "contractsFinder": 577,
     "findATender": 0
   },
   "tenders": [
+    {
+      "id": "tender-5",
+      "title": "Ridley Villas Contractor",
+      "organization": "London Borough of Hackney",
+      "value": 4100000,
+      "deadline": "2026-03-19T14:00:00Z",
+      "summary": "Construction contract for the comprehensive refurbishment of Ridley Villas (47A Ridley Rd, London E8 2NP).",
+      "detailedDescription": "Construction contract for the comprehensive refurbishment of Ridley Villas (47A Ridley Rd, London E8 2NP).",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
     {
       "id": "tender-11",
       "title": "Electricity supply",
@@ -3584,21 +3599,6 @@
       "deadline": "2026-04-16T15:00:00+01:00",
       "summary": "Award of a Call-Off Contract under the Prison Education Dynamic Purchasing System for a Dumper and Mini Roller Training Course for Prisoners at HMP High Downn",
       "detailedDescription": "Award of a Call-Off Contract under the Prison Education Dynamic Purchasing System for a Dumper and Mini Roller Training Course for Prisoners at HMP High Downn",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-5",
-      "title": "Award of a Call-Off Contract under the Prison Education Dynamic Purchasing System for Low Level Literacy and Numeracy Support for Prisoners at HMP Standford Hill",
-      "organization": "Ministry of Justice",
-      "value": 27251,
-      "deadline": "2026-04-20T15:00:00+01:00",
-      "summary": "Award of a Call-Off Contract under the Prison Education Dynamic Purchasing System for Low Level Literacy and Numeracy Support for Prisoners at HMP Standford Hill",
-      "detailedDescription": "Award of a Call-Off Contract under the Prison Education Dynamic Purchasing System for Low Level Literacy and Numeracy Support for Prisoners at HMP Standford Hill",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
