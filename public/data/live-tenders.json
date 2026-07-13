@@ -1,11 +1,26 @@
 {
-  "generated": "2026-07-12T08:58:20.221Z",
+  "generated": "2026-07-13T10:16:36.193Z",
   "count": 511,
   "sources": {
     "contractsFinder": 511,
     "findATender": 0
   },
   "tenders": [
+    {
+      "id": "tender-1",
+      "title": "Electrical Testing & Remedials",
+      "organization": "GLOUCESTER CITY HOMES LIMITED",
+      "value": 95000,
+      "deadline": "2026-07-07T12:00:00+01:00",
+      "summary": "Testing, repairing & certifying electrical circuits in domestic properties",
+      "detailedDescription": "Testing, repairing & certifying electrical circuits in domestic properties",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
     {
       "id": "tender-6",
       "title": "Installation Services, Small Works and Reactive Call Outs",
@@ -509,21 +524,6 @@
       "deadline": "2026-02-27T12:00:00Z",
       "summary": "Occupational Health (OH) service as s a business function provided to all council services and a tool to reduce absence and assist people back into the workplace",
       "detailedDescription": "Occupational Health (OH) service as s a business function provided to all council services and a tool to reduce absence and assist people back into the workplace",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-1",
-      "title": "Independent Debt Advice Service",
-      "organization": "Phoenix Community Housing",
-      "value": 54000,
-      "deadline": "2026-07-30T17:00:00+01:00",
-      "summary": "Provision of independent debt advice service to residents on a three year contract. To be delivered in person at our office and via telephone.",
-      "detailedDescription": "Provision of independent debt advice service to residents on a three year contract. To be delivered in person at our office and via telephone.",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
