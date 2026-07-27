@@ -1,11 +1,26 @@
 {
-  "generated": "2026-07-26T09:07:45.391Z",
+  "generated": "2026-07-27T10:33:26.480Z",
   "count": 580,
   "sources": {
     "contractsFinder": 580,
     "findATender": 0
   },
   "tenders": [
+    {
+      "id": "tender-7",
+      "title": "Supply of ServiceNow Licences",
+      "organization": "DfTc - Department for Transport",
+      "value": 3000000,
+      "deadline": "2026-06-19T14:00:00+01:00",
+      "summary": "Contract award notice.",
+      "detailedDescription": "Contract award notice.",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
     {
       "id": "tender-1",
       "title": "Provision of an ESN Wide Area Network (ESN WAN)",
@@ -59,21 +74,6 @@
       "deadline": "2026-06-04T17:00:00+01:00",
       "summary": "school construction works",
       "detailedDescription": "school construction works",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-7",
-      "title": "Haygrove School- PCSA (con_31817)",
-      "organization": "Department for Education",
-      "value": 3199905.71,
-      "deadline": "2026-05-29T17:00:00+01:00",
-      "summary": "School construction works",
-      "detailedDescription": "School construction works",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
