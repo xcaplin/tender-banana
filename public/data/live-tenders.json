@@ -1,11 +1,41 @@
 {
-  "generated": "2026-08-31T14:39:23.974Z",
-  "count": 524,
+  "generated": "2026-09-01T12:14:57.009Z",
+  "count": 525,
   "sources": {
-    "contractsFinder": 524,
+    "contractsFinder": 525,
     "findATender": 0
   },
   "tenders": [
+    {
+      "id": "tender-1",
+      "title": "Cycle Training Services",
+      "organization": "London Borough of Southwark",
+      "value": 150000,
+      "deadline": "2026-08-06T23:59:00+01:00",
+      "summary": "Cycle Training to adults, families, children including Bikeability  training sessions.",
+      "detailedDescription": "Cycle Training to adults, families, children including Bikeability  training sessions.",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
+    {
+      "id": "tender-6",
+      "title": "EPR Implementation Delivery Partner - Business Change Services",
+      "organization": "United Lincolnshire Teaching Hospitals NHS Trust",
+      "value": 898356,
+      "deadline": "2026-07-01T12:00:00+01:00",
+      "summary": "The Trust requires the provision of Business Change Services to support the implementation of an Electronic Patient Record. The contract is for 11 months with no extensions. The published contract val",
+      "detailedDescription": "The Trust requires the provision of Business Change Services to support the implementation of an Electronic Patient Record. The contract is for 11 months with no extensions. The published contract value is for the full contract duration. This is a call-off contract awarded via the Government Commercial Agency G-Cloud 14 Framework Lot 3 Cloud Support.",
+      "region": "",
+      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
+      "status": "new",
+      "categories": [],
+      "sirona_fit": null,
+      "source": "Contracts Finder"
+    },
     {
       "id": "tender-32",
       "title": "RA360101 - CONSTRUCTION OF NEW OFFICE SPACE",
@@ -2834,21 +2864,6 @@
       "deadline": "2024-07-17T12:00:00+01:00",
       "summary": "The Council wishes to invite tenders for the supply of services in respect of Security services- the Council are looking for a service provider with a good knowledge of the area and the capability to ",
       "detailedDescription": "The Council wishes to invite tenders for the supply of services in respect of Security services- the Council are looking for a service provider with a good knowledge of the area and the capability to attend relevant sites within 20 minutes.  The majority of services are currently based in Grantham, however coverage will be required at other locations across the district.",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-1",
-      "title": "WQP M1 Top Lock Cottage - Ground Investigation Works",
-      "organization": "National Highways Limited",
-      "value": 59550.54,
-      "deadline": "2026-08-24T15:00:00+01:00",
-      "summary": "Ground investigation works associated with the Water Quality Programme M1 Top Lock Cottage scheme (PIN 623826), delivered as a call-off under the Ground Investigation Framework (Midlands Lot). The wor",
-      "detailedDescription": "Ground investigation works associated with the Water Quality Programme M1 Top Lock Cottage scheme (PIN 623826), delivered as a call-off under the Ground Investigation Framework (Midlands Lot). The works comprise ground investigation and associated reporting in accordance with the scheme Ground Investigation Scope Report and ICE Specification.",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
