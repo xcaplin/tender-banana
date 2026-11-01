@@ -1,8 +1,8 @@
 {
-  "generated": "2026-10-31T13:13:00.974Z",
-  "count": 568,
+  "generated": "2026-11-01T13:56:19.127Z",
+  "count": 566,
   "sources": {
-    "contractsFinder": 568,
+    "contractsFinder": 566,
     "findATender": 0
   },
   "tenders": [
@@ -8489,36 +8489,6 @@
       "deadline": "2026-06-30T12:00:00+01:00",
       "summary": "SW - AOMR Lot 3 Wessex RMP 26-27 - Glendale Upper Avon",
       "detailedDescription": "SW - AOMR Lot 3 Wessex RMP 26-27 - Glendale Upper Avon",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-68",
-      "title": "020.26 Information Communication Technician - AWARD",
-      "organization": "Telford and Wrekin Council",
-      "value": 0,
-      "deadline": "2026-09-24T17:00:00+01:00",
-      "summary": "To find a training provider to deliver the Information Communication Technician apprenticeship for 2026 start.",
-      "detailedDescription": "To find a training provider to deliver the Information Communication Technician apprenticeship for 2026 start.",
-      "region": "",
-      "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
-      "status": "new",
-      "categories": [],
-      "sirona_fit": null,
-      "source": "Contracts Finder"
-    },
-    {
-      "id": "tender-95",
-      "title": "Lot 1",
-      "organization": "Homes England (the name adopted by the Homes and Communities Agency)",
-      "value": 177000,
-      "deadline": "2024-04-21T23:59:00+01:00",
-      "summary": "Property Professional and Technical Services. The procurement of a new Property Agent for Northstowe to help deliver our KPIs.",
-      "detailedDescription": "Property Professional and Technical Services. The procurement of a new Property Agent for Northstowe to help deliver our KPIs.",
       "region": "",
       "url": "https://www.contractsfinder.service.gov.uk/notice/undefined",
       "status": "new",
